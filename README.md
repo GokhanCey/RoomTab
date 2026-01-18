@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RoomTab
 
-## Getting Started
+**RoomTab is an AI-powered fairness agent for splitting costs in complex shared situations.**
 
-First, run the development server:
+> Built for the **Commit to Change: AI Agents Hackathon** 2026.
+
+![Status: Live](https://img.shields.io/badge/Status-Live-success?style=flat-square) ![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square) ![Tech](https://img.shields.io/badge/Tech-Next.js%20%7C%20Tailwind%20%7C%20Opik-black?style=flat-square)
+
+## Live Demo
+**[Try RoomTab Instantly](https://room-tab.vercel.app)**
+*(No signup required)*
+
+---
+
+## The Problem
+Splitting bills is rarely as simple as dividing the total by the number of people. Real life involves nuance:
+*   "I didn't drink alcohol."
+*   "I arrived two days late to the Airbnb."
+*   "I'm sleeping on the couch, not a bedroom."
+
+Traditional apps require complex manual mathematics to account for these variables. RoomTab uses AI to deduce the fair share automatically based on natural language context.
+
+## How It Works
+1.  **Describe the Context**: Tell the Agent what you are splitting (e.g., "Weekend Trip", "Team Dinner").
+2.  **Add Expenses**: List receipts or costs.
+3.  **Tag Participants**: Add natural language tags like "Non-drinker", "Early departure", or "Organizer".
+4.  **Get a Fair Split**: Our AI Agent analyzes the context and generates a breakdown with explained reasoning for every dollar.
+
+## Tech Stack
+*   **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS
+*   **AI Inference**: Google Gemini 2.5 Flash (Mocked for Demo reliability)
+*   **Observability**: **[Opik](https://comet.com/site/products/opik/)** for tracing agent decisions and evaluating fairness scores.
+*   **Deployment**: Vercel
+
+## Evaluation & Observability (Opik)
+We use Opik to ensure our Agent provides reliable outputs and fair reasoning.
+*   **Traces**: Every "Generate Split" action is logged as a trace.
+*   **Scoring**: We verify that the sum of splits equals the total (Mathematical Correctness) and check against fairness heuristics (e.g., verifying that a "non-drinker" pays less than the average share).
+
+## Running Locally
 
 ```bash
+# 1. Clone the repo
+git clone https://github.com/GokhanCey/RoomTab.git
+
+# 2. Install dependencies
+npm install
+
+# 3. Run the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Hackathon Tracks
+*   **Best Use of Opik**: Deep integration of observability to prove AI fairness.
+*   **Financial Health**: Reducing social friction and financial stress among peers.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+*Built by Gokhan Ceylan.*

@@ -19,9 +19,8 @@ export default function CreatePlanPage() {
     const [loading, setLoading] = useState(false)
     const [agreementResult, setAgreementResult] = useState<AgreementData | null>(null)
 
-    // Temporary state for adding tags
+    // Temporary state for adding tags (optional usage now, since we handle directly)
     const [newTag, setNewTag] = useState<string>("")
-    const [activeParticipantId, setActiveParticipantId] = useState<string | null>(null)
 
     const [plan, setPlan] = useState<PlanData>({
         title: "Weekend Trip",
@@ -72,13 +71,14 @@ export default function CreatePlanPage() {
         }))
     }
 
-    const addTag = (id: string) => {
-        if (!newTag.trim()) return
+    // Fixed addTag to use direct value instead of async state
+    const addTag = (id: string, tagVal: string) => {
+        const cleaned = tagVal.trim()
+        if (!cleaned) return
         setPlan(prev => ({
             ...prev,
-            participants: prev.participants.map(p => p.id === id ? { ...p, tags: [...p.tags, newTag.trim()] } : p)
+            participants: prev.participants.map(p => p.id === id ? { ...p, tags: [...p.tags, cleaned] } : p)
         }))
-        setNewTag("")
     }
 
     const removeTag = (id: string, tagToRemove: string) => {
@@ -145,6 +145,51 @@ export default function CreatePlanPage() {
         }
     }
 
+    // --- Templates ---
+    const TEMPLATES: Record<string, { title: string, context: string, expenses: string[], participants: string[] }> = {
+        rent: {
+            title: " Monthly Rent Split",
+            context: "e.g. Alex moved in on the 5th. Jamie has a larger room. Rent includes utilities.",
+            expenses: ["Rent", "Internet", "Electricity"],
+            participants: ["Tenant 1", "Tenant 2", "Tenant 3"]
+        },
+        trip: {
+            title: "Weekend Trip",
+            context: "e.g. Taylor paid for the Airbnb deposit. Jordan is a student. We split gas evenly.",
+            expenses: ["Airbnb", "Car Rental", "Groceries"],
+            participants: ["Traveler 1", "Traveler 2", "Traveler 3"]
+        },
+        dinner: {
+            title: "Friday Dinner",
+            context: "e.g. Sarah didn't drink alcohol. Bill includes 20% tip.",
+            expenses: ["Food", "Drinks", "Tip"],
+            participants: ["Diner 1", "Diner 2", "Diner 3"]
+        },
+        other: {
+            title: "Shared Expense",
+            context: "Describe any specific fairness adjustments here...",
+            expenses: ["Item 1", "Item 2"],
+            participants: ["Person 1", "Person 2"]
+        }
+    }
+
+    const applyTemplate = (category: string) => {
+        const t = TEMPLATES[category] || TEMPLATES.other
+
+        // Only apply if user hasn't heavily customized yet (simple heuristic: default title)
+        // Or we just update text/placeholders. User asked for "templates".
+        // Let's overwite intelligently.
+
+        setPlan(prev => ({
+            ...prev,
+            category: category as any,
+            // Optional: Auto-fill title if it's generic
+            title: prev.title === "Weekend Trip" || prev.title === "" ? t.title : prev.title,
+            // We won't overwrite description/participants as that destroys data, 
+            // but we will use 't.context' as the PLACEHOLDER in the UI.
+        }))
+    }
+
     return (
         <div className="container max-w-3xl py-10 pb-32">
             <div className="mb-8 space-y-2 text-center">
@@ -172,7 +217,7 @@ export default function CreatePlanPage() {
                             <Label>Category</Label>
                             <Select
                                 value={plan.category}
-                                onValueChange={(v) => updatePlan('category', v)}>
+                                onValueChange={(v) => applyTemplate(v)}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Category" />
                                 </SelectTrigger>
@@ -267,16 +312,15 @@ export default function CreatePlanPage() {
                                             placeholder="Add tag..."
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') {
-                                                    setNewTag((e.target as HTMLInputElement).value)
-                                                    addTag(p.id)
-                                                        // Hack to clear input by re-render or ref ideally, but simpler here:
-                                                        ; (e.target as HTMLInputElement).value = ''
+                                                    e.preventDefault()
+                                                    const target = e.currentTarget
+                                                    addTag(p.id, target.value)
+                                                    target.value = ''
                                                 }
                                             }}
                                             onBlur={(e) => {
                                                 if (e.target.value) {
-                                                    setNewTag(e.target.value)
-                                                    addTag(p.id) // Auto add on blur
+                                                    addTag(p.id, e.target.value)
                                                     e.target.value = ''
                                                 }
                                             }}
@@ -300,7 +344,7 @@ export default function CreatePlanPage() {
                     </CardHeader>
                     <CardContent>
                         <Textarea
-                            placeholder="e.g. Jordan paid for the entire Airbnb upfront. Taylor shouldn't pay for the Friday dinner."
+                            placeholder={TEMPLATES[plan.category || 'trip']?.context || "Describe the situation..."}
                             value={plan.description || ''}
                             onChange={(e) => updatePlan('description', e.target.value)}
                             className="resize-none h-20"
@@ -363,6 +407,21 @@ export default function CreatePlanPage() {
                             </Card>
                         ))}
                     </div>
+
+                    {/* Results Actions */}
+                    <Card className="bg-muted/30 border-dashed">
+                        <CardFooter className="pt-6 flex flex-col sm:flex-row gap-3 justify-end">
+                            <Button onClick={() => setAgreementResult(null)} variant="outline" className="w-full sm:w-auto">
+                                Edit Plan
+                            </Button>
+                            <Button onClick={() => downloadAgreementCsv(agreementResult, plan.title)} variant="outline" className="w-full sm:w-auto gap-2">
+                                <Download className="h-4 w-4" /> Export CSV
+                            </Button>
+                        </CardFooter>
+                    </Card>
+
+                    {/* Opik Dashboard Integration */}
+                    <OpikDashboard agreement={agreementResult} />
                 </div>
             )}
         </div>

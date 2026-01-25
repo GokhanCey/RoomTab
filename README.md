@@ -37,6 +37,12 @@ We use Opik to ensure our Agent provides reliable outputs and fair reasoning.
 *   **Traces**: Every "Generate Split" action is logged as a trace.
 *   **Scoring**: We verify that the sum of splits equals the total (Mathematical Correctness) and check against fairness heuristics (e.g., verifying that a "non-drinker" pays less than the average share).
 
+## Key Features (Hackathon Updates)
+*   **Fairness Logic v2**: Now uses multiplicative weighting (e.g., *0.7 for Students) and context-aware filtering (e.g., Non-drinkers don't get discounts on Rent).
+*   **Financial Health**: Automatically detects "Student", "Unemployed", or "Intern" tags to apply subsidy logic, reducing financial stress for vulnerable groups.
+*   **Opik Observability**: Full tracing of every decision. See the [Fairness Evaluation Report](FAIRNESS_REPORT.md) for a 10-scenario audit.
+*   **Smart Templates**: One-click setup for "Rent", "Trips", or "Dinner" that pre-fills standard context rules.
+
 ## Running Locally
 
 ```bash
@@ -46,15 +52,23 @@ git clone https://github.com/GokhanCey/RoomTab.git
 # 2. Install dependencies
 npm install
 
-# 3. Run the development server
+# 3. Verification (Optional)
+# This runs the 10-scenario stress test locally
+node evaluate_scenarios.js
+
+# 4. Run the development server
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Evidence of Fairness
+We take fairness seriously. We ran our Agent against 10 complex edge cases (Mixed diets, Late joiners, Income disparity).
+👉 **[Read the Full Fairness Report](FAIRNESS_REPORT.md)**
+
 ## Hackathon Tracks
-*   **Best Use of Opik**: Deep integration of observability to prove AI fairness.
-*   **Financial Health**: Reducing social friction and financial stress among peers.
+*   **Best Use of Opik**: Deep integration of observability to prove AI fairness. We log model versions, decision paths, and fairness scores.
+*   **Financial Health**: Reducing social friction and financial stress among peers/students via automated subsidies.
 
 ---
 *Built by Gokhan Ceylan.*

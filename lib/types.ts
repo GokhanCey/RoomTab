@@ -36,4 +36,5 @@ export interface AgreementData {
     split: SplitItem[]
     agentSummary: string
     timestamp: string
+    metadata?: any // Opik tracing metadata (model version, etc.)
 }

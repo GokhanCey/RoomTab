@@ -2,15 +2,17 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, Trash2, ArrowRight, Loader2, Info, HelpCircle, Check, AlertCircle, X } from "lucide-react"
+import { Plus, Trash2, ArrowRight, Loader2, Info, HelpCircle, Check, AlertCircle, X, Download } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PlanData, Participant, ExpenseItem, AgreementData } from "@/lib/types"
+import { OpikDashboard } from "@/components/OpikDashboard"
+import { downloadAgreementCsv } from "@/lib/csv"
 
 export default function CreatePlanPage() {
     const router = useRouter()
@@ -209,7 +211,7 @@ export default function CreatePlanPage() {
                                     <span className="absolute left-3 top-2.5 text-xs text-muted-foreground">{plan.currency}</span>
                                     <Input
                                         type="number"
-                                        className="pl-8"
+                                        className="pl-12"
                                         placeholder="0"
                                         value={expense.amount || ''}
                                         onChange={(e) => updateExpense(expense.id, 'amount', parseFloat(e.target.value))}
@@ -317,8 +319,11 @@ export default function CreatePlanPage() {
             {/* Results Section */}
             {agreementResult && (
                 <div id="results-section" className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex items-center gap-2 pb-2 border-b">
+                    <div className="flex flex-col sm:flex-row items-center gap-2 pb-2 border-b justify-between">
                         <span className="text-primary text-xl font-bold">🎉 Fairness Achieved</span>
+                        <span className="text-xs text-muted-foreground bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-3 py-1 rounded-full border border-yellow-500/20">
+                            Note: These are cost responsibilities, not settlement amounts.
+                        </span>
                     </div>
 
                     <Card className="bg-primary/5 border-primary/20">
@@ -346,6 +351,9 @@ export default function CreatePlanPage() {
                                 <CardContent className="space-y-4">
                                     <div className="text-3xl font-bold text-foreground">
                                         {plan.currency} {s.recommendedShare}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mb-2">
+                                        Fair Share Responsibility
                                     </div>
                                     <div className="text-sm text-muted-foreground flex items-start gap-2 bg-muted/50 p-2 rounded">
                                         <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />

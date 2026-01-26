@@ -459,11 +459,23 @@ export default function CreatePlanPage() {
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
-                                        <div className="text-3xl font-bold text-foreground">
-                                            {plan.currency} {s.recommendedShare}
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-3xl font-bold text-foreground">{plan.currency}</span>
+                                            <Input
+                                                type="number"
+                                                className="text-2xl font-bold h-12 w-32 bg-transparent border-b border-0 rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary"
+                                                value={s.recommendedShare}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    const newSplit = [...agreementResult.split];
+                                                    newSplit[idx] = { ...newSplit[idx], recommendedShare: val };
+                                                    setAgreementResult({ ...agreementResult, split: newSplit });
+                                                }}
+                                            />
                                         </div>
                                         <div className="text-xs text-muted-foreground mb-2">
                                             Fair Share Responsibility
+                                            <span className="ml-1 text-[10px] uppercase tracking-wider border px-1 rounded bg-muted/50">Editable</span>
                                         </div>
                                         <div className="text-sm text-muted-foreground flex items-start gap-2 bg-muted/50 p-2 rounded">
                                             <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />

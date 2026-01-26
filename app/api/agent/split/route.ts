@@ -5,19 +5,32 @@ import { v4 as uuidv4 } from 'uuid'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
-// Initialize Opik Client
-const opikClient = new Opik({
-    apiKey: process.env.OPIK_API_KEY
-})
+// Initialize Opik Client (Safe Mode)
+// Vercel build will fail if we throw on missing keys, so we handle it gracefully.
+let opikClient: any = null;
+if (process.env.OPIK_API_KEY) {
+    try {
+        opikClient = new Opik({
+            apiKey: process.env.OPIK_API_KEY
+        })
+    } catch (e) {
+        console.warn("Opik init failed:", e);
+    }
+}
 
 export async function POST(req: Request) {
     const traceId = uuidv4();
 
-    // Start Opik Trace
-    const trace = opikClient.trace({
+    // Start Opik Trace (Mock if client missing)
+    const trace = opikClient ? opikClient.trace({
         name: "fairness_split_generation",
         tags: ["fairness_v2", "roomtab-web", `trace:${traceId}`]
-    })
+    }) : {
+        // Mock trace object to prevent crashes
+        span: (args: any) => ({ end: () => { } }),
+        update: () => { },
+        end: () => { }
+    }
 
     try {
         const body = await req.json()

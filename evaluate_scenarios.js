@@ -136,38 +136,62 @@ const scenarios = [
 
 function postData(data) {
     return new Promise((resolve, reject) => {
-        const postData = JSON.stringify(data);
-        const options = {
-            hostname: 'localhost',
-            port: 3000,
-            path: '/api/agent/split',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(postData)
-            }
-        };
+        const makeRequest = (retries = 3, delay = 5000) => {
+            const postDataStr = JSON.stringify(data);
+            const options = {
+                hostname: 'localhost',
+                port: 3000,
+                path: '/api/agent/split',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(postDataStr)
+                }
+            };
 
-        const req = http.request(options, (res) => {
-            let body = '';
-            res.setEncoding('utf8');
-            res.on('data', (chunk) => body += chunk);
-            res.on('end', () => {
-                if (res.statusCode >= 200 && res.statusCode < 300) {
-                    try {
-                        resolve(JSON.parse(body));
-                    } catch (e) {
-                        reject(e);
+            const req = http.request(options, (res) => {
+                let body = '';
+                res.setEncoding('utf8');
+                res.on('data', (chunk) => body += chunk);
+                res.on('end', () => {
+                    if (res.statusCode >= 200 && res.statusCode < 300) {
+                        try {
+                            resolve(JSON.parse(body));
+                        } catch (e) {
+                            reject(e);
+                        }
+                    } else if (res.statusCode === 500 && body.includes("Too Many Requests") && retries > 0) {
+                        // Backend catches 429 and returns 500, check body text if possible, or just retry on 500s too?
+                        // Our backend actually returns 500 for ALL errors. 
+                        // But we logged the inner error is 429. User sees 500.
+                        // Let's retry on 500 just in case it's transient 429.
+                        console.log(`Received ${res.statusCode}. Retrying in ${delay / 1000}s... (${retries} left)`);
+                        setTimeout(() => makeRequest(retries - 1, delay * 2), delay);
+                    } else {
+                        // Check if we should retry anyway for robustness during demo
+                        if (retries > 0) {
+                            console.log(`Received ${res.statusCode} (likely Rate Limit). Retrying in ${delay / 1000}s... (${retries} left)`);
+                            setTimeout(() => makeRequest(retries - 1, delay * 2), delay);
+                        } else {
+                            reject(new Error(`Status: ${res.statusCode} Body: ${body}`));
+                        }
                     }
+                });
+            });
+
+            req.on('error', (e) => {
+                if (retries > 0) {
+                    console.log(`Network error ${e.message}. Retrying...`);
+                    setTimeout(() => makeRequest(retries - 1, delay * 2), delay);
                 } else {
-                    reject(new Error(`Status: ${res.statusCode} Body: ${body}`));
+                    reject(e);
                 }
             });
-        });
+            req.write(postDataStr);
+            req.end();
+        };
 
-        req.on('error', (e) => reject(e));
-        req.write(postData);
-        req.end();
+        makeRequest();
     });
 }
 
@@ -175,7 +199,14 @@ async function runEvaluations() {
     console.log("# RoomTab Evaluation Results\n");
     console.log(`Generated on: ${new Date().toLocaleString()}\n`);
 
-    for (const scenario of scenarios) {
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    for (const [index, scenario] of scenarios.entries()) {
+        if (index > 0) {
+            console.log("Waiting 5s to respect rate limits...");
+            await sleep(5000);
+        }
+
         try {
             const data = await postData(scenario);
 

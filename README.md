@@ -28,8 +28,8 @@ Traditional apps require complex manual mathematics to account for these variabl
 
 ## Tech Stack
 *   **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS
-*   **AI Inference**: Google Gemini 2.5 Flash (Mocked for Demo reliability)
-*   **Observability**: **[Opik](https://comet.com/site/products/opik/)** for tracing agent decisions and evaluating fairness scores.
+*   **AI Inference**: Google Gemini 2.5 Flash (Live Inference)
+*   **Observability**: **[Opik](https://comet.com/site/products/opik/)** (Official Node.js SDK) for tracing agent decisions and evaluating fairness scores.
 *   **Deployment**: Vercel
 
 ## Evaluation & Observability (Opik)

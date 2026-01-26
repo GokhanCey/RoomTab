@@ -14,32 +14,60 @@ import { PlanData, Participant, ExpenseItem, AgreementData } from "@/lib/types"
 import { OpikDashboard } from "@/components/OpikDashboard"
 import { downloadAgreementCsv } from "@/lib/csv"
 
+// --- TYPES ---
+type TemplateData = {
+    title: string;
+    contextPlaceholder: string;
+    items: string[];
+    people: string[];
+}
+
 export default function CreatePlanPage() {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [agreementResult, setAgreementResult] = useState<AgreementData | null>(null)
 
-    // Temporary state for adding tags (optional usage now, since we handle directly)
-    const [newTag, setNewTag] = useState<string>("")
+    // --- TEMPLATES (Rich Defaults) ---
+    const TEMPLATES: Record<string, TemplateData> = {
+        rent: {
+            title: "Monthly Rent Split",
+            contextPlaceholder: "e.g. Alex has the larger room with ensuite. Sam moved in halfway through the month.",
+            items: ["Rent", "Electricity", "Internet", "Water"],
+            people: ["Tenant A", "Tenant B", "Tenant C"]
+        },
+        trip: {
+            title: "Weekend Trip",
+            contextPlaceholder: "e.g. Taylor booked the Airbnb. Jordan is a student and gets a discount on tickets.",
+            items: ["Airbnb", "Gas / Fuel", "Groceries", "Tickets"],
+            people: ["Traveler A", "Traveler B", "Traveler C"]
+        },
+        dinner: {
+            title: "Birthday Dinner",
+            contextPlaceholder: "e.g. Sarah didn't drink alcohol. We want to split the birthday girl's share.",
+            items: ["Food", "Drinks", "Table Service", "Cake"],
+            people: ["Diner A", "Diner B", "Diner C", "Diner D"]
+        }
+    }
 
     const [plan, setPlan] = useState<PlanData>({
         title: "Weekend Trip",
         currency: "USD",
         category: "trip",
         participants: [
-            { id: "1", name: "Alex", tags: ["Organizer"] },
-            { id: "2", name: "Jordan", tags: ["Non-drinker"] },
-            { id: "3", name: "Taylor", tags: ["Arrived late"] }
+            { id: "1", name: "Traveler A", tags: [] },
+            { id: "2", name: "Traveler B", tags: [] },
+            { id: "3", name: "Traveler C", tags: [] }
         ],
         expenses: [
-            { id: "1", description: "Airbnb", amount: 600 },
-            { id: "2", description: "Dinner & Drinks", amount: 250 },
-            { id: "3", description: "Uber to Airport", amount: 45 }
+            { id: "1", description: "Airbnb", amount: 0 },
+            { id: "2", description: "Gas / Fuel", amount: 0 },
         ],
-        description: "Jordan didn't drink at dinner. Taylor missed the first night."
+        description: "" // Start empty
     })
 
-    // --- Helpers ---
+    // --- LOGIC ---
+
+    // Total Cost
     const totalCost = plan.expenses.reduce((sum, item) => sum + item.amount, 0)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,7 +75,44 @@ export default function CreatePlanPage() {
         setPlan(prev => ({ ...prev, [field]: value }))
     }
 
-    // --- Participant Logic ---
+    // Switch Category & Apply Template
+    const handleCategoryChange = (newCategory: string) => {
+        let template = TEMPLATES[newCategory]
+
+        if (newCategory === "other") {
+            // Empty / Blank Slate
+            template = {
+                title: "New Expense",
+                contextPlaceholder: "Describe any special fairness considerations...",
+                items: ["Item 1"],
+                people: ["Person A", "Person B"]
+            }
+        } else if (!template) {
+            template = TEMPLATES.trip // fallback
+        }
+
+        // Hard Reset based on Template
+        setPlan({
+            title: template.title,
+            currency: plan.currency, // keep currency
+            category: newCategory as any,
+            description: "", // Reset description to empty
+            participants: template.people.map((name, idx) => ({
+                id: Date.now().toString() + idx,
+                name: name,
+                tags: []
+            })),
+            expenses: template.items.map((item, idx) => ({
+                id: Date.now().toString() + idx + 100, // offset id
+                description: item,
+                amount: 0 // Reset amounts to 0
+            }))
+        })
+        setAgreementResult(null) // Reset results
+    }
+
+
+    // --- CRUD Participants ---
     const addParticipant = () => {
         const newId = Date.now().toString()
         setPlan(prev => ({
@@ -71,7 +136,6 @@ export default function CreatePlanPage() {
         }))
     }
 
-    // Fixed addTag to use direct value instead of async state
     const addTag = (id: string, tagVal: string) => {
         const cleaned = tagVal.trim()
         if (!cleaned) return
@@ -88,7 +152,7 @@ export default function CreatePlanPage() {
         }))
     }
 
-    // --- Expense Logic ---
+    // --- CRUD Expenses ---
     const addExpense = () => {
         const newId = Date.now().toString()
         setPlan(prev => ({
@@ -117,84 +181,70 @@ export default function CreatePlanPage() {
         setAgreementResult(null)
         try {
             if (totalCost <= 0) {
-                alert("Please add at least one expense.")
+                alert("Please add at least one expense amount.")
                 setLoading(false)
                 return
             }
 
+            // Implicit: Logic handles empty description as "Deterministic"
             const res = await fetch('/api/agent/split', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(plan)
             })
 
-            if (!res.ok) throw new Error("Agent failed")
-
             const data = await res.json()
+
+            if (!res.ok) {
+                throw new Error(data.agentSummary || "Agent failed")
+            }
+
             setAgreementResult(data)
+
+            // Save to Local History
+            const historyItem = {
+                id: Date.now().toString(),
+                timestamp: new Date().toISOString(),
+                title: plan.title,
+                totalAmount: totalCost,
+                currency: plan.currency,
+                split: data.split,
+                traceId: data.metadata?.trace_id,
+                agentSummary: data.agentSummary
+            }
+
+            try {
+                const existing = JSON.parse(localStorage.getItem('roomtab_history') || '[]')
+                localStorage.setItem('roomtab_history', JSON.stringify([historyItem, ...existing]))
+            } catch (e) {
+                console.error("Failed to save history", e)
+            }
 
             setTimeout(() => {
                 document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })
             }, 100)
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(error)
-            alert("Something went wrong.")
+            alert(error.message || "Something went wrong.")
         } finally {
             setLoading(false)
         }
     }
 
-    // --- Templates ---
-    const TEMPLATES: Record<string, { title: string, context: string, expenses: string[], participants: string[] }> = {
-        rent: {
-            title: " Monthly Rent Split",
-            context: "e.g. Alex moved in on the 5th. Jamie has a larger room. Rent includes utilities.",
-            expenses: ["Rent", "Internet", "Electricity"],
-            participants: ["Tenant 1", "Tenant 2", "Tenant 3"]
-        },
-        trip: {
-            title: "Weekend Trip",
-            context: "e.g. Taylor paid for the Airbnb deposit. Jordan is a student. We split gas evenly.",
-            expenses: ["Airbnb", "Car Rental", "Groceries"],
-            participants: ["Traveler 1", "Traveler 2", "Traveler 3"]
-        },
-        dinner: {
-            title: "Friday Dinner",
-            context: "e.g. Sarah didn't drink alcohol. Bill includes 20% tip.",
-            expenses: ["Food", "Drinks", "Tip"],
-            participants: ["Diner 1", "Diner 2", "Diner 3"]
-        },
-        other: {
-            title: "Shared Expense",
-            context: "Describe any specific fairness adjustments here...",
-            expenses: ["Item 1", "Item 2"],
-            participants: ["Person 1", "Person 2"]
-        }
-    }
-
-    const applyTemplate = (category: string) => {
-        const t = TEMPLATES[category] || TEMPLATES.other
-
-        // Only apply if user hasn't heavily customized yet (simple heuristic: default title)
-        // Or we just update text/placeholders. User asked for "templates".
-        // Let's overwite intelligently.
-
-        setPlan(prev => ({
-            ...prev,
-            category: category as any,
-            // Optional: Auto-fill title if it's generic
-            title: prev.title === "Weekend Trip" || prev.title === "" ? t.title : prev.title,
-            // We won't overwrite description/participants as that destroys data, 
-            // but we will use 't.context' as the PLACEHOLDER in the UI.
-        }))
-    }
-
     return (
         <div className="container max-w-3xl py-10 pb-32">
-            <div className="mb-8 space-y-2 text-center">
+            <div className="mb-8 flex flex-col items-center justify-center text-center relative">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute right-0 top-0 hidden sm:flex"
+                    onClick={() => router.push('/history')}
+                >
+                    <ArrowRight className="mr-2 h-4 w-4" /> View History
+                </Button>
                 <h1 className="text-3xl font-bold tracking-tight">Smart Split Creator</h1>
-                <p className="text-muted-foreground">Describe the costs, list the people, and let AI settle it fairly.</p>
+                <p className="text-muted-foreground">Select a category to load a template, then fill in the numbers.</p>
             </div>
 
             <div className="grid gap-6">
@@ -206,18 +256,10 @@ export default function CreatePlanPage() {
                     </CardHeader>
                     <CardContent className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
-                            <Label>Event Title</Label>
-                            <Input
-                                value={plan.title}
-                                onChange={(e) => updatePlan('title', e.target.value)}
-                                placeholder="e.g. Ski Trip"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Category</Label>
+                            <Label>Category (Loads Template)</Label>
                             <Select
                                 value={plan.category}
-                                onValueChange={(v) => applyTemplate(v)}>
+                                onValueChange={handleCategoryChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Category" />
                                 </SelectTrigger>
@@ -229,6 +271,14 @@ export default function CreatePlanPage() {
                                 </SelectContent>
                             </Select>
                         </div>
+                        <div className="space-y-2">
+                            <Label>Event Title</Label>
+                            <Input
+                                value={plan.title}
+                                onChange={(e) => updatePlan('title', e.target.value)}
+                                placeholder="e.g. Ski Trip"
+                            />
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -237,7 +287,7 @@ export default function CreatePlanPage() {
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle>Expenses</CardTitle>
-                            <CardDescription>Add all receipts or costs here.</CardDescription>
+                            <CardDescription>Enter the amounts for each item.</CardDescription>
                         </div>
                         <div className="text-xl font-bold text-primary">
                             {plan.currency} {totalCost.toFixed(2)}
@@ -278,7 +328,7 @@ export default function CreatePlanPage() {
                     <CardHeader>
                         <CardTitle>Participants</CardTitle>
                         <CardDescription>
-                            Who's involved? Add tags like "Non-drinker" or "Left early" for the Agent.
+                            Add specific tags like "Non-drinker" or "Arrived late" to influence the AI.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -338,17 +388,32 @@ export default function CreatePlanPage() {
                 {/* 4. Context */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2">
                             Additional Context
+                            <span className="text-xs font-normal text-muted-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-md">
+                                AI Powered
+                            </span>
                         </CardTitle>
+                        <CardDescription>
+                            Describe any special situations. Leave empty for a standard split calculation.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Textarea
-                            placeholder={TEMPLATES[plan.category || 'trip']?.context || "Describe the situation..."}
-                            value={plan.description || ''}
-                            onChange={(e) => updatePlan('description', e.target.value)}
-                            className="resize-none h-20"
-                        />
+                        <div className="relative">
+                            <Textarea
+                                placeholder={TEMPLATES[plan.category]?.contextPlaceholder || "Describe the situation..."}
+                                value={plan.description || ''}
+                                onChange={(e) => {
+                                    if (e.target.value.length <= 500) {
+                                        updatePlan('description', e.target.value)
+                                    }
+                                }}
+                                className="resize-none h-24 pb-6"
+                            />
+                            <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                                {plan.description?.length || 0}/500
+                            </div>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -361,69 +426,73 @@ export default function CreatePlanPage() {
             </div>
 
             {/* Results Section */}
-            {agreementResult && (
-                <div id="results-section" className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex flex-col sm:flex-row items-center gap-2 pb-2 border-b justify-between">
-                        <span className="text-primary text-xl font-bold">🎉 Fairness Achieved</span>
-                        <span className="text-xs text-muted-foreground bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-3 py-1 rounded-full border border-yellow-500/20">
-                            Note: These are cost responsibilities, not settlement amounts.
-                        </span>
+            {
+                agreementResult && (
+                    <div id="results-section" className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex flex-col sm:flex-row items-center gap-2 pb-2 border-b justify-between">
+                            <span className="text-primary text-xl font-bold">🎉 Fairness Achieved</span>
+                            <span className="text-xs text-muted-foreground bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-3 py-1 rounded-full border border-yellow-500/20">
+                                Note: These are cost responsibilities, not settlement amounts.
+                            </span>
+                        </div>
+
+                        <Card className="bg-primary/5 border-primary/20">
+                            <CardHeader>
+                                <CardTitle className="text-primary flex items-center gap-2">
+                                    <Info className="w-5 h-5" /> Fairness Logic
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-lg leading-relaxed">{agreementResult.agentSummary}</p>
+                            </CardContent>
+                        </Card>
+
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {agreementResult.split.map((s, idx) => (
+                                <Card key={idx} className="overflow-hidden border-t-4 border-t-primary/80 shadow-md">
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="flex justify-between items-center">
+                                            {s.name}
+                                            <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                                                {s.sharePercentage}%
+                                            </span>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="text-3xl font-bold text-foreground">
+                                            {plan.currency} {s.recommendedShare}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground mb-2">
+                                            Fair Share Responsibility
+                                        </div>
+                                        <div className="text-sm text-muted-foreground flex items-start gap-2 bg-muted/50 p-2 rounded">
+                                            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                                            {s.reasoning}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+
+                        {/* Results Actions */}
+                        <Card className="bg-muted/30 border-dashed">
+                            <CardFooter className="pt-6 flex flex-col sm:flex-row gap-3 justify-end">
+                                <Button onClick={() => setAgreementResult(null)} variant="outline" className="w-full sm:w-auto">
+                                    Edit Plan
+                                </Button>
+                                <Button onClick={() => downloadAgreementCsv(agreementResult, plan.title)} variant="outline" className="w-full sm:w-auto gap-2">
+                                    <Download className="h-4 w-4" /> Export CSV
+                                </Button>
+                            </CardFooter>
+                        </Card>
+
+                        {/* Opik Dashboard Integration */}
+                        <OpikDashboard agreement={agreementResult} />
                     </div>
-
-                    <Card className="bg-primary/5 border-primary/20">
-                        <CardHeader>
-                            <CardTitle className="text-primary flex items-center gap-2">
-                                <Info className="w-5 h-5" /> Agent Reasoning
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-lg leading-relaxed">{agreementResult.agentSummary}</p>
-                        </CardContent>
-                    </Card>
-
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {agreementResult.split.map((s, idx) => (
-                            <Card key={idx} className="overflow-hidden border-t-4 border-t-primary/80 shadow-md">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="flex justify-between items-center">
-                                        {s.name}
-                                        <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                                            {s.sharePercentage}%
-                                        </span>
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="text-3xl font-bold text-foreground">
-                                        {plan.currency} {s.recommendedShare}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground mb-2">
-                                        Fair Share Responsibility
-                                    </div>
-                                    <div className="text-sm text-muted-foreground flex items-start gap-2 bg-muted/50 p-2 rounded">
-                                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                                        {s.reasoning}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-
-                    {/* Results Actions */}
-                    <Card className="bg-muted/30 border-dashed">
-                        <CardFooter className="pt-6 flex flex-col sm:flex-row gap-3 justify-end">
-                            <Button onClick={() => setAgreementResult(null)} variant="outline" className="w-full sm:w-auto">
-                                Edit Plan
-                            </Button>
-                            <Button onClick={() => downloadAgreementCsv(agreementResult, plan.title)} variant="outline" className="w-full sm:w-auto gap-2">
-                                <Download className="h-4 w-4" /> Export CSV
-                            </Button>
-                        </CardFooter>
-                    </Card>
-
-                    {/* Opik Dashboard Integration */}
-                    <OpikDashboard agreement={agreementResult} />
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     )
 }
+
+

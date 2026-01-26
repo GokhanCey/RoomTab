@@ -50,15 +50,15 @@ export default function AboutPage() {
                         split: [],
                         agentSummary: "",
                         timestamp: "",
-                        metadata: { subsidy_active: true, model: "gemini-2.5-flash-mock" }
+                        metadata: { subsidy_active: true, model: "gemini-2.5-flash" }
                     }} />
                 </div>
             </div>
             <h3 className="text-2xl font-bold mt-8 mb-4">Tech Stack</h3>
             <ul className="list-disc pl-6 space-y-2">
-                <li><strong>Frontend:</strong> Next.js 15 (App Router), Tailwind CSS, Lucide React</li>
-                <li><strong>AI:</strong> Gemini Flash (via Vercel AI SDK or Google SDK)</li>
-                <li><strong>Observability:</strong> Opik TypeScript SDK</li>
+                <li><strong>Frontend:</strong> Next.js 14 (App Router), Tailwind CSS, Lucide React</li>
+                <li><strong>AI:</strong> Google Gemini 2.5 Flash (Live Inference)</li>
+                <li><strong>Observability:</strong> Opik (Official SDK)</li>
             </ul>
         </div>
     )

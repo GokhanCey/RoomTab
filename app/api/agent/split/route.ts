@@ -1,20 +1,22 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { NextResponse } from 'next/server'
 import { Opik } from "opik"
+import { v4 as uuidv4 } from 'uuid'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
 // Initialize Opik Client
-// Note: 'workspace' is read from OPIK_WORKSPACE env var in typical SDKs.
-// We remove it from constructor to avoid TS error.
 const opikClient = new Opik({
     apiKey: process.env.OPIK_API_KEY
 })
 
 export async function POST(req: Request) {
+    const traceId = uuidv4();
+
     // Start Opik Trace
     const trace = opikClient.trace({
         name: "fairness_split_generation",
+        tags: ["fairness_v2", "roomtab-web", `trace:${traceId}`]
     })
 
     try {
@@ -22,19 +24,19 @@ export async function POST(req: Request) {
         const { title, expenses, participants, category, description, currency } = body
 
         // Log Input to Trace
-        // If 'update' takes no args in this version, we might skip input logging or try to rely on creation
-        // But let's try to assume we can just do basic tracing to pass the hackathon "Integration" check.
-        // We will try to pass inputs in creation if possible, or skip if strict.
-        // HOWEVER, to be safe, I will wrap updates in try-catch blocks or use 'any' casting if desperate,
-        // but cleaner is to just use what works. 
-        // Docs say: trace.input is a setter in Python, maybe in JS too?
-        // Let's try to assign if possible, or just ignore for now to fix the build.
-        // ERROR WAS: "Expected 0 arguments" for update/end. 
-        // This implies: trace.end()
-
-        // Let's rely on `trace` creation for name, and just end it.
-        // If we can't log input easily without errors, we skip it to ensure the app RUNS.
-        // "Real Integration" is better than "Broken App".
+        try {
+            trace.update({
+                input: {
+                    expenses,
+                    participants,
+                    context: description,
+                    category
+                },
+                tags: ["fairness_v2", category || "general", `trace:${traceId}`]
+            })
+        } catch (e) {
+            console.warn("Opik update warning:", e)
+        }
 
         // 1. Calculate Standard Fairness (Equal Split)
         const totalAmount = expenses.reduce((acc: number, curr: any) => acc + curr.amount, 0)
@@ -85,43 +87,110 @@ export async function POST(req: Request) {
         // End Logic Span
         span.end()
 
-        // 2. Generate Prompt for Explanation
-        const prompt = `
-        You are a Fairness Agent splitting a bill of ${currency} ${totalAmount.toFixed(2)} for "${title}" (${category}).
-        
-        Participants & Calculated Weights:
-        ${JSON.stringify(weightedParticipants, null, 2)}
+        let data;
+        let modelUsed = "deterministic-v2";
 
-        Context: "${description}"
+        // SKIP LLM if no context is provided to save Quota (Fallback Mode)
+        if (!description || description.trim() === "") {
+            const lines = weightedParticipants.map((p: any) => {
+                // Calculate share proportional to weight
+                // share = (totalAmount * weight) / totalWeight
+                const share = (totalAmount * p.weight) / totalWeight;
 
-        Task:
-        1. Calculate exact shares based on the weights provided.
-        2. Explain the reasoning clearly. Mention if someone pays less due to "Student" or "Non-drinker" status.
-        3. If "High Earner" is present, explicitly state they are subsidizing the others.
-        
-        Return JSON:
-        {
-            "split": [{ "name": string, "recommendedShare": number, "sharePercentage": number, "reasoning": string }],
-            "agentSummary": string
+                return {
+                    name: p.name,
+                    recommendedShare: Number(share.toFixed(2)),
+                    sharePercentage: Number(((p.weight / totalWeight) * 100).toFixed(1)),
+                    reasoning: p.reasons.length > 0 ? p.reasons.join(", ") : "Standard Split"
+                }
+            })
+
+            data = {
+                split: lines,
+                agentSummary: "Context disabled. Using standard weighted fairness logic (Deterministic Mode). No AI Quota used."
+            }
+        } else {
+            // Validated Model from debug_list: gemini-2.0-flash
+            modelUsed = "gemini-2.0-flash";
+
+            // 2. Generate Prompt for Explanation
+            const prompt = `
+            You are a Logic Engine splitting a bill of ${currency} ${totalAmount.toFixed(2)} for "${title}" (${category}).
+            
+            Participants & Base Weights:
+            ${JSON.stringify(weightedParticipants, null, 2)}
+
+            Context provided by user: "${description}"
+
+            CRITICAL INSTRUCTION - "Deep Logic V5":
+            
+            1. **ITEMIZATION**: If the input lists costs (e.g. "Rent: $1200", "Elec: $100"), you MUST create a separate line item for each using those EXACT numbers. Do NOT lump them.
+
+            2. **RATIO DECODING**: 
+               - "Twice smaller room" = 1 part vs 2 parts (Total 3 parts). Person A pays 1/3, Person B pays 2/3.
+               - "Half the size" = 1:2 ratio.
+               - "Larger room" (unspecified) = ~60/40 split.
+
+            3. **EXCLUSIONS**: "Doesn't use electricity" = Pay $0 for that specific item.
+
+            4. **CALCULATION**:
+               - Break down costs per item.
+               - Sum them up carefully.
+             
+            Step 5: FINAL VERIFICTION. Add the numbers explicitly. e.g. "400 + 0 + 75 = 475".
+
+            CRITICAL: 
+            - The "recommendedShare" MUST be the output of Step 5.
+            - DO NOT "adjust", "normalize", or "balance" the result. 
+            - If your math says $475, output 475.
+            - IGNORE any global "weight" parameters if they conflict with your itemized math.
+
+            Output JSON strictly:
+            {
+                "detected_items": [{"name": string, "cost": number, "payers": string[]}],  // List the sub-items you inferred (or "General", "remainder")
+                "step_by_step_reasoning": string[], // Array of strings explaining each math step
+                "split": [{ "name": string, "recommendedShare": number, "sharePercentage": number, "reasoning": string }],
+                "agentSummary": string // A concise final explanation for the users
+            }
+            `
+
+            // Span for LLM
+            const llmSpan = trace.span({
+                name: "gemini_inference",
+                type: "llm"
+            })
+
+            // Initialize Model with Retry Logic
+            // Using gemini-2.0-flash-exp (or flash) for best logic/speed ratio
+            const model = genAI.getGenerativeModel({
+                model: "gemini-2.0-flash",
+                generationConfig: { responseMimeType: "application/json" }
+            });
+
+            const generateWithRetry = async (text: string, retries = 3, delay = 10000): Promise<string> => {
+                try {
+                    const result = await model.generateContent(text);
+                    const response = await result.response;
+                    return response.text();
+                } catch (error: any) {
+                    console.log(`Gemini Error: ${error.message}. Retrying in ${delay}ms... (Remaining: ${retries})`);
+                    if (retries > 0) {
+                        await new Promise(r => setTimeout(r, delay));
+                        return generateWithRetry(text, retries - 1, delay * 2);
+                    }
+                    throw error;
+                }
+            };
+
+            // Increase initial delay to 10s to match Free Tier penalty boxes
+            const text = await generateWithRetry(prompt, 3, 10000);
+
+            const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
+            data = JSON.parse(cleanedText)
+
+            // End LLM Span
+            llmSpan.end()
         }
-        `
-
-        // Span for LLM
-        const llmSpan = trace.span({
-            name: "gemini_inference",
-            type: "llm"
-        })
-
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
-        const result = await model.generateContent(prompt)
-        const response = await result.response
-        const text = response.text()
-
-        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
-        const data = JSON.parse(cleanedText)
-
-        // End LLM Span
-        llmSpan.end()
 
         // Add metadata for frontend
         const resultWithMeta = {
@@ -130,8 +199,8 @@ export async function POST(req: Request) {
                 totalAmount,
                 subsidy_active: subsidyActive,
                 fairness_algorithm: "weighted_v2_multiplicative",
-                model: "gemini-2.5-flash",
-                trace_id: "real-trace-id" // Placeholder if we can't get ID safely
+                model: modelUsed,
+                trace_id: traceId // Real UUID
             }
         }
 
@@ -143,16 +212,9 @@ export async function POST(req: Request) {
 
     } catch (error: any) {
         console.error("Agent Error Full:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
-        // Try accessing response if it's a fetch error
-        if (error.response) {
-            const text = await error.response.text().catch(() => "No response text")
-            console.error("Agent Error Response Body:", text)
-        }
-        // trace.end() // Try to close if open, but might conflict if not started
-        // opikClient.flush() 
         return NextResponse.json({
             split: [],
-            agentSummary: "Agent failed to generate a split. Please try again."
+            agentSummary: `Agent failed: ${error.message || "Unknown Error"}`
         }, { status: 500 })
     }
 }

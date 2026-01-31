@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Brain, ShieldCheck, Scale, Split, MessageSquare, CheckCircle2, ArrowRight } from "lucide-react"
+import { ArchitectureViewer } from "@/components/ArchitectureViewer"
 
 export default function AboutPage() {
     return (
@@ -134,14 +135,8 @@ export default function AboutPage() {
                     Built with Next.js 15, Gemini 2.0 Flash, and Opik Observability.
                     Logic V4 ensures zero-sum fairness through item-iterative exclusions.
                 </p>
-                <div className="border rounded-xl overflow-hidden shadow-lg bg-white dark:bg-zinc-900">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        src="/Architecture.png"
-                        alt="RoomTab Architecture Diagram"
-                        className="w-full h-auto"
-                    />
-                </div>
+
+                <ArchitectureViewer />
             </div>
 
             {/* 5. Hackathon Details */}

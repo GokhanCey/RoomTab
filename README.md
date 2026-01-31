@@ -77,4 +77,3 @@ We put RoomTab through the "Absurdity Test" to ensure robustness:
 | **The Ghost** | "King says he pays nothing." | **PASS**: King pays $0, others cover the cost (or user rejects plan). |
 | **The Micro-Usage** | "Dave watched 13 mins of the movie." | **PASS**: Dave pays exactly ~11% of the ticket. |
 
-*Project submitted by Team RoomTab.*

@@ -19,7 +19,8 @@ if (process.env.OPIK_API_KEY) {
 }
 
 export async function POST(req: Request) {
-    const traceId = uuidv4();
+    const startTime = Date.now()
+    const traceId = uuidv4()
 
     // Start Opik Trace (Mock if client missing)
     const trace = opikClient ? opikClient.trace({
@@ -53,6 +54,7 @@ export async function POST(req: Request) {
 
         // 1. Calculate Standard Fairness (Equal Split)
         const totalAmount = expenses.reduce((acc: number, curr: any) => acc + curr.amount, 0)
+        const equalShare = totalAmount / (participants.length || 1) // Baseline
 
         // Define Span for Logic
         const span = trace.span({
@@ -102,12 +104,12 @@ export async function POST(req: Request) {
 
         let data;
         let modelUsed = "deterministic-v2";
+        let agentRecommendedSplit: any[] = [];
 
         // SKIP LLM if no context is provided to save Quota (Fallback Mode)
         if (!description || description.trim() === "") {
-            const lines = weightedParticipants.map((p: any) => {
+            agentRecommendedSplit = weightedParticipants.map((p: any) => {
                 // Calculate share proportional to weight
-                // share = (totalAmount * weight) / totalWeight
                 const share = (totalAmount * p.weight) / totalWeight;
 
                 return {
@@ -119,14 +121,14 @@ export async function POST(req: Request) {
             })
 
             data = {
-                split: lines,
+                split: agentRecommendedSplit,
                 agentSummary: "Context disabled. Using standard weighted fairness logic (Deterministic Mode). No AI Quota used."
             }
         } else {
             // Validated Model from debug_list: gemini-2.0-flash
             modelUsed = "gemini-2.0-flash";
 
-            // 2. Generate Prompt for Explanation
+            // 2. Generate Prompt for Explanation - HARDENED V7
             const prompt = `
             You are a Logic Engine splitting a bill of ${currency} ${totalAmount.toFixed(2)} for "${title}" (${category}).
             
@@ -135,50 +137,50 @@ export async function POST(req: Request) {
 
             Context provided by user: "${description}"
 
-            CRITICAL INSTRUCTION - "Deep Logic V5":
+            CRITICAL INSTRUCTION - "Deep Logic V7 (Compounding Signals)":
             
-            1. **ITEMIZATION**: If the input lists costs (e.g. "Rent: $1200", "Elec: $100"), you MUST create a separate line item for each using those EXACT numbers. Do NOT lump them.
+            1. **ZERO-EQUALITY DIRECTIVE**: 
+               - If the context mentions ANY difference between people (e.g. "vegan", "late", "small room", "unemployed"), an equal split is FORBIDDEN.
+               - You must apply a discount or premium based on the signal.
+            
+            2. **ITEMIZATION & EXCLUSIONS**: 
+               - If someone "didn't use" X (e.g. "Jessy didn't use electricity"), you must isolate that cost.
+               - Jessy's share for that item MUST be 0. Others pay it.
+               - Do NOT smooth this over. Show the math: "Electricity: $100. Jessy $0, Others $33".
 
-            2. **RATIO DECODING**: 
-               - "Twice smaller room" = 1 part vs 2 parts (Total 3 parts). Person A pays 1/3, Person B pays 2/3.
-               - "Half the size" = 1:2 ratio.
-               - "Larger room" (unspecified) = ~60/40 split.
+            3. **COMPOUNDING SIGNALS**:
+               - If someone has multiple factors (e.g. "Unemployed" AND "Late arrival"), BOTH discounts apply.
+               - Do not let them cancel out unless they are opposites.
 
-            3. **EXCLUSIONS**: "Doesn't use electricity" = Pay $0 for that specific item.
-
-            4. **CALCULATION**:
-               - Break down costs per item.
-               - Sum them up carefully.
-             
-            Step 5: FINAL VERIFICTION. Add the numbers explicitly. e.g. "400 + 0 + 75 = 475".
-
-            CRITICAL: 
-            - The "recommendedShare" MUST be the output of Step 5.
-            - DO NOT "adjust", "normalize", or "balance" the result. 
-            - If your math says $475, output 475.
-            - IGNORE any global "weight" parameters if they conflict with your itemized math.
+            4. **FINAL STEP**:
+               - Sum up cost-per-person.
+               - Output explicit "weights_used" (e.g. 1.0, 0.5) and "context_signals" used for debugging.
 
             Output JSON strictly:
             {
-                "detected_items": [{"name": string, "cost": number, "payers": string[]}],  // List the sub-items you inferred (or "General", "remainder")
-                "step_by_step_reasoning": string[], // Array of strings explaining each math step
+                "detected_items": [{"name": string, "cost": number}],
+                "context_signals": { [personName: string]: string[] },
+                "weights_used": { [personName: string]: number },
+                "step_by_step_reasoning": string[], 
                 "split": [{ "name": string, "recommendedShare": number, "sharePercentage": number, "reasoning": string }],
-                "agentSummary": string // A concise final explanation for the users
+                "agentSummary": string 
             }
             `
 
             // Span for LLM
             const llmSpan = trace.span({
-                name: "gemini_inference",
+                name: "gemini_inference_v7",
                 type: "llm"
             })
 
-            // Initialize Model with Retry Logic
-            // Using gemini-2.0-flash-exp (or flash) for best logic/speed ratio
+            // Initialize Model
             const model = genAI.getGenerativeModel({
                 model: "gemini-2.0-flash",
                 generationConfig: { responseMimeType: "application/json" }
             });
+
+            // Count tokens (heuristic)
+            const inputTokenCount = Math.ceil(prompt.length / 4);
 
             const generateWithRetry = async (text: string, retries = 3, delay = 10000): Promise<string> => {
                 try {
@@ -186,7 +188,7 @@ export async function POST(req: Request) {
                     const response = await result.response;
                     return response.text();
                 } catch (error: any) {
-                    console.log(`Gemini Error: ${error.message}. Retrying in ${delay}ms... (Remaining: ${retries})`);
+                    console.log(`Gemini Error: ${error.message}. Retrying...`);
                     if (retries > 0) {
                         await new Promise(r => setTimeout(r, delay));
                         return generateWithRetry(text, retries - 1, delay * 2);
@@ -195,25 +197,62 @@ export async function POST(req: Request) {
                 }
             };
 
-            // Increase initial delay to 10s to match Free Tier penalty boxes
             const text = await generateWithRetry(prompt, 3, 10000);
-
             const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
             data = JSON.parse(cleanedText)
+            agentRecommendedSplit = data.split
 
-            // End LLM Span
-            llmSpan.end()
+            // End LLM Span with Metadata
+            llmSpan.end({
+                output: {
+                    responseSize: text.length,
+                    model: "gemini-2.0-flash",
+                    weights: data.weights_used, // Log weights to Opik
+                    signals: data.context_signals
+                },
+                tags: ["production_v2", "hardened_logic"]
+            })
         }
+
+        // 3. Post-Processing: Compute Savings & Settlements
+        const finalSplit = agentRecommendedSplit.map((item: any) => {
+            const savings = equalShare - item.recommendedShare
+            return {
+                ...item,
+                comparison: {
+                    equalShare: Number(equalShare.toFixed(2)),
+                    savings: Number(savings.toFixed(2))
+                }
+            }
+        })
+
+        // -- SETTLEMENT LOGIC --
+        // Use the imported calculation function
+        const { calculateSettlements } = await import('@/lib/settlement')
+        const settlements = calculateSettlements(expenses, finalSplit, participants)
+
+        const endTime = Date.now()
+        const latencyMs = endTime - startTime
 
         // Add metadata for frontend
         const resultWithMeta = {
             ...data,
+            split: finalSplit,
+            settlements: settlements,
+            stats: {
+                latencyMs,
+                model: modelUsed,
+            },
             metadata: {
                 totalAmount,
                 subsidy_active: subsidyActive,
-                fairness_algorithm: "weighted_v2_multiplicative",
+                fairness_algorithm: "weighted_v2_settlement_aware",
                 model: modelUsed,
-                trace_id: traceId // Real UUID
+                trace_id: traceId,
+                timestamp: new Date().toISOString(),
+                // Pass rich debug info to frontend if available
+                weights_used: data.weights_used,
+                context_signals: data.context_signals
             }
         }
 

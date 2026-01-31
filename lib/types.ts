@@ -11,7 +11,7 @@ export interface ExpenseItem {
     id: string
     description: string
     amount: number
-    payerId?: string // Optional: who paid for this originally? (For now assume shared pot or handle in logic)
+    payerId?: string // Optional: who paid for this originally?
 }
 
 export interface PlanData {
@@ -23,18 +23,40 @@ export interface PlanData {
     description?: string // General context
 }
 
+export interface Transaction {
+    from: string
+    to: string
+    amount: number
+}
+
 export interface SplitItem {
     name: string
     sharePercentage: number
     recommendedShare: number
     reasoning: string
+    comparison?: {
+        equalShare: number
+        savings: number // Positive = Saved money vs equal
+    }
 }
 
 export interface AgreementData {
     planId?: string
     totalAmount: number
     split: SplitItem[]
+    settlements?: Transaction[] // Who owes whom
     agentSummary: string
     timestamp: string
-    metadata?: any // Opik tracing metadata (model version, etc.)
+    stats?: {
+        latencyMs: number
+        model: string
+        input_token_count?: number
+    }
+    metadata?: {
+        totalAmount?: number
+        trace_id?: string
+        weights_used?: Record<string, number>
+        context_signals?: Record<string, string[]>
+        [key: string]: any
+    }
 }

@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlanData, Participant, ExpenseItem, AgreementData } from "@/lib/types"
+import { PlanData, Participant, ExpenseItem, AgreementData, Transaction } from "@/lib/types"
 import { OpikDashboard } from "@/components/OpikDashboard"
 import { downloadAgreementCsv } from "@/lib/csv"
+import { ExportModal } from "@/components/ui/ExportModal"
 
 // --- TYPES ---
 type TemplateData = {
@@ -157,7 +158,7 @@ export default function CreatePlanPage() {
         const newId = Date.now().toString()
         setPlan(prev => ({
             ...prev,
-            expenses: [...prev.expenses, { id: newId, description: "", amount: 0 }]
+            expenses: [...prev.expenses, { id: newId, description: "", amount: 0, payerId: prev.participants[0]?.id }]
         }))
     }
 
@@ -249,6 +250,10 @@ export default function CreatePlanPage() {
 
             <div className="grid gap-6">
 
+                <div className="absolute -bottom-16 left-0 right-0 text-center text-xs text-muted-foreground opacity-70">
+                    RoomTab Fairness Engine v2.1 • Multilingual support coming soon.
+                </div>
+
                 {/* 1. Event / Plan Details */}
                 <Card className="border-l-4 border-l-primary/50">
                     <CardHeader>
@@ -278,6 +283,26 @@ export default function CreatePlanPage() {
                                 onChange={(e) => updatePlan('title', e.target.value)}
                                 placeholder="e.g. Ski Trip"
                             />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Currency</Label>
+                            <Select
+                                value={plan.currency}
+                                onValueChange={(val) => updatePlan('currency', val)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Currency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="USD">USD ($)</SelectItem>
+                                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                                    <SelectItem value="GBP">GBP (£)</SelectItem>
+                                    <SelectItem value="TRY">TRY (₺)</SelectItem>
+                                    <SelectItem value="INR">INR (₹)</SelectItem>
+                                    <SelectItem value="JPY">JPY (¥)</SelectItem>
+                                    <SelectItem value="AUD">AUD ($)</SelectItem>
+                                    <SelectItem value="CAD">CAD ($)</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </CardContent>
                 </Card>
@@ -312,6 +337,19 @@ export default function CreatePlanPage() {
                                         onChange={(e) => updateExpense(expense.id, 'amount', parseFloat(e.target.value))}
                                     />
                                 </div>
+                                <Select
+                                    value={expense.payerId || plan.participants[0]?.id}
+                                    onValueChange={(val) => updateExpense(expense.id, 'payerId', val)}
+                                >
+                                    <SelectTrigger className="w-[100px] sm:w-[130px] text-xs">
+                                        <SelectValue placeholder="Who paid?" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {plan.participants.map(p => (
+                                            <SelectItem key={p.id} value={p.id}>{p.name.split(' ')[0]}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 <Button variant="ghost" size="icon" onClick={() => removeExpense(expense.id)} className="h-9 w-9 text-muted-foreground hover:text-destructive">
                                     <X className="h-4 w-4" />
                                 </Button>
@@ -453,9 +491,22 @@ export default function CreatePlanPage() {
                                     <CardHeader className="pb-2">
                                         <CardTitle className="flex justify-between items-center">
                                             {s.name}
-                                            <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                                                {s.sharePercentage}%
-                                            </span>
+                                            <div className="flex flex-col items-end gap-1">
+                                                <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                                                    {s.sharePercentage}%
+                                                </span>
+                                                {/* Comparison Badge */}
+                                                {s.comparison && s.comparison.savings > 0 && (
+                                                    <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                                                        Saved {plan.currency}{s.comparison.savings}
+                                                    </span>
+                                                )}
+                                                {s.comparison && s.comparison.savings < 0 && (
+                                                    <span className="text-[10px] font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+                                                        Pays {plan.currency}{Math.abs(s.comparison.savings)} more
+                                                    </span>
+                                                )}
+                                            </div>
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
@@ -492,14 +543,58 @@ export default function CreatePlanPage() {
                                 <Button onClick={() => setAgreementResult(null)} variant="outline" className="w-full sm:w-auto">
                                     Edit Plan
                                 </Button>
+                                <ExportModal />
                                 <Button onClick={() => downloadAgreementCsv(agreementResult, plan.title)} variant="outline" className="w-full sm:w-auto gap-2">
                                     <Download className="h-4 w-4" /> Export CSV
                                 </Button>
                             </CardFooter>
                         </Card>
 
+                        {/* 5. Settlement Plan (New) */}
+                        {agreementResult.settlements && agreementResult.settlements.length > 0 && (
+                            <Card className="border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-950/20">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                                        💸 Settlement Plan
+                                    </CardTitle>
+                                    <CardDescription>
+                                        The most efficient way to settle debts.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ul className="space-y-3">
+                                        {agreementResult.settlements.map((tx, idx) => (
+                                            <li key={idx} className="flex items-center gap-2 p-3 bg-background rounded-lg border shadow-sm">
+                                                <span className="font-bold text-foreground">{tx.from}</span>
+                                                <span className="text-muted-foreground">pays</span>
+                                                <span className="font-bold text-foreground">{tx.to}</span>
+                                                <span className="ml-auto font-mono font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                                    {plan.currency}{tx.amount.toFixed(2)}
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        )}
+
                         {/* Opik Dashboard Integration */}
                         <OpikDashboard agreement={agreementResult} />
+
+                        {/* Debug Toggle for Judges */}
+                        <div className="pt-8 border-t">
+                            <details className="text-xs text-muted-foreground cursor-pointer">
+                                <summary className="hover:text-primary font-semibold mb-2">Show Debug Info (Judges View)</summary>
+                                <div className="bg-black text-green-400 p-4 rounded-md overflow-x-auto font-mono">
+                                    <pre>{JSON.stringify({
+                                        settlements: agreementResult.settlements,
+                                        split: agreementResult.split,
+                                        ai_reasoning: agreementResult.agentSummary,
+                                        stats: agreementResult.stats
+                                    }, null, 2)}</pre>
+                                </div>
+                            </details>
+                        </div>
                     </div>
                 )
             }

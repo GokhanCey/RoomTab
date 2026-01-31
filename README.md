@@ -3,11 +3,11 @@
 
 > **Stop arguing about the bill. Let Logic handle it.**
 
-RoomTab is an AI-powered expense splitting agent built for the **Amadeus Genesis Hackathon**. It goes beyond simple math to understand the *nuance* of shared costs—solving the "Silent Tax" of being the roommate who arrives late, doesn't drink, or eats less.
+RoomTab is an AI-driven fairness engine for splitting shared costs, built for the **Amadeus Genesis Hackathon**. It goes beyond simple math to understand the *nuance* of shared costs—solving the "Silent Tax" of being the roommate who arrives late, doesn't drink, or eats less.
 
 [![Built with Opik](https://img.shields.io/badge/Observability-Opik-blue)](https://www.comet.com/opik) [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/) [![Gemini 2.0](https://img.shields.io/badge/AI-Gemini%202.0-8E44AD)](https://deepmind.google/technologies/gemini/)
 
-## The Problem
+## Why Simple Splits Fail
 
 Existing split apps are calculators, not arbiters. They force you to manually input who owes what, leading to social friction.
 *   "Does Alice pay for the Uber if she fell asleep in the back?"
@@ -21,7 +21,7 @@ Manually adjusting these spreadsheets is a nightmare.
 RoomTab uses **Google Gemini 2.0 Flash** combined with a custom **Item-Iterative Deterministic Engine**.
 1.  **AI Judge**: It reads your natural language context ("Jack didn't use gas") to assign specific *Role Tags* to participants (e.g., `exclude:gas`, `partial:rent`).
 2.  **Deterministic Math**: A rigorous algorithm calculates exact splits down to the cent. No AI hallucinations. No "floating math."
-3.  **Traceability**: Every decision is logged to **Opik** for full transparency.
+3.  **Traceability**: Every decision is logged to **Opik** for full transparency and **auditability**.
 
 ## Hackathon Features
 
@@ -46,9 +46,11 @@ We didn't just add logging; we built our debugging loop on Opik.
 *   **Backend**: Next.js API Routes (Edge-ready)
 *   **AI**: Gemini 2.0 Flash (via Vercel AI SDK)
 *   **Observability**: Opik SDK (Comet ML)
-*   **Database**: LocalStorage (Privacy-first)
+*   **Storage**: Ephemeral / Privacy-First (LocalStorage)
 
 ## Getting Started within 2 Minutes
+
+**Don't have API keys?** Try the [Live Demo](https://room-tab.vercel.app/) instead.
 
 1.  **Clone & Install**
     ```bash
@@ -75,7 +77,7 @@ We didn't just add logging; we built our debugging loop on Opik.
 We put RoomTab through the "Absurdity Test" to ensure robustness:
 
 | Scenario | Input Context | Result |
-| :--- | :--- | :--- |
+| : -- | : -- | : -- |
 | **The Vegan** | "Bob is vegan and didn't eat steak." | **PASS**: Bob pays $0 for steak, fair share of salad. |
 | **The Late Arrival** | "Alice arrived 2 days late." | **PASS**: Alice pays pro-rated rent. |
 | **The Ghost** | "King says he pays nothing." | **PASS**: King pays $0, others cover the cost (or user rejects plan). |
@@ -84,7 +86,7 @@ We put RoomTab through the "Absurdity Test" to ensure robustness:
 ## Links
 
 *   **Live Demo**: [https://room-tab.vercel.app/](https://room-tab.vercel.app/)
-*   **Demo Video**: [https://youtube.com/tbu](https://youtube.com/tbu)
+*   **Video Walkthrough**: [https://youtube.com/tbu](https://youtube.com/tbu)
 *   **Source Code**: [https://github.com/GokhanCey/RoomTab](https://github.com/GokhanCey/RoomTab)
 *   **Pitch Deck**: [https://github.com/GokhanCey/RoomTab/blob/main/PD.pdf](https://github.com/GokhanCey/RoomTab/blob/main/PD.pdf)
 

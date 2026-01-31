@@ -87,7 +87,7 @@ We didn't just add logging; we built our debugging loop on Opik.
 We put RoomTab through the "Absurdity Test" to ensure robustness:
 
 | Scenario | Input Context | Result |
-| : -- | : -- | : -- |
+| :--- | :--- | :--- |
 | **The Vegan** | "Bob is vegan and didn't eat steak." | **PASS**: Bob pays $0 for steak, fair share of salad. |
 | **The Late Arrival** | "Alice arrived 2 days late." | **PASS**: Alice pays pro-rated rent. |
 | **The Ghost** | "King says he pays nothing." | **PASS**: King pays $0, others cover the cost (or user rejects plan). |

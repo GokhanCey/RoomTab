@@ -3,7 +3,7 @@
 
 > **Stop arguing about the bill. Let Logic handle it.**
 
-RoomTab is an AI-driven fairness engine for splitting shared costs, built for the **Amadeus Genesis Hackathon**. It goes beyond simple math to understand the *nuance* of shared costs—solving the "Silent Tax" of being the roommate who arrives late, doesn't drink, or eats less.
+RoomTab is an AI-driven fairness engine for splitting shared costs, built for the **Amadeus Genesis Hackathon**. It goes beyond simple math to understand the *nuance* of shared costs-solving the "Silent Tax" of being the roommate who arrives late, doesn't drink, or eats less.
 
 [![Built with Opik](https://img.shields.io/badge/Observability-Opik-blue)](https://www.comet.com/opik) [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/) [![Gemini 2.0](https://img.shields.io/badge/AI-Gemini%202.0-8E44AD)](https://deepmind.google/technologies/gemini/)
 

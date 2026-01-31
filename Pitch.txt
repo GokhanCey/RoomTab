@@ -1,0 +1,22 @@
+🎤 Final Pitch Script (3 min, Natural Tone)
+
+[Slide 1: Title – 0:00–0:20]
+"Hey there, we’re RoomTab — and we’ve got beef with unfair bill splits. You know the drill: one person shows up late, another skips dinner, someone pays it all... and somehow you all owe the same?"
+"Yeah, we’re fixing that."
+
+[Slide 2: The Problem – 0:20–0:40]
+"Most split apps just divide by headcount. That’s fine until real life shows up — like your roommate’s cousin who never chipped in, or your friend who said 'I’m vegan' and ate half the steak."
+"Turns out, equal isn’t always fair."
+
+[Slide 3: The Solution – 0:40–1:00]
+"RoomTab adds context to the math. Our AI takes in little notes like 'Bob arrived late' or 'Alice didn’t drink' and adjusts the split — automatically — while showing exactly how it got there."
+"It’s like Venmo — but with logic and receipts."
+
+[Slide 4: Live Demo – 1:00–2:00]
+"Let me show you how it works:
+You enter the bill, like dinner for $90.
+Add context if needed — like 'Charlie skipped dessert' or 'Taylor paid it all'.
+Hit split.
+Boom — RoomTab runs the logic, applies fairness rules, and shows the breakdown.
+
+Even better? We log everything to Opik so the whole decision is auditable — down to the trace ID, tokens, and feedback."

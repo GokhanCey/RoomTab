@@ -48,7 +48,7 @@ export default function RootLayout({
           <footer className="py-6 md:px-8 md:py-0">
             <div className="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
               <p className="text-balance text-center text-sm leading-loose text-muted-foreground md:text-left">
-                Built for &quot;Commit to Change&quot; Hackathon. Powered by <span className="font-bold text-primary">Gemini 2.5 Flash</span> & <span className="font-bold text-primary">Opik Observability</span>.
+                Built for &quot;Commit to Change&quot; Hackathon. Powered by <span className="font-bold text-primary">Gemini 2.0 Flash</span> & <span className="font-bold text-primary">Opik Observability</span>.
               </p>
             </div>
           </footer>

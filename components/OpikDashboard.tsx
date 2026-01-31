@@ -33,7 +33,7 @@ export function OpikDashboard({ agreement }: OpikDashboardProps) {
 
     // Real Data from Opik Cloud response
     const fairnessScore = agreement.metadata?.subsidy_active ? 98 : 94; // Optimized based on active logic
-    const modelVersion = agreement.metadata?.model || "gemini-2.5-flash"; // Default to real model name
+    const modelVersion = agreement.metadata?.model || "gemini-2.0-flash"; // Default to real model name
 
     return (
         <div className="mt-8 p-4 bg-muted/20 border rounded-lg">

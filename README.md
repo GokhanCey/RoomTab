@@ -3,7 +3,7 @@
 
 > **Stop arguing about the bill. Let Logic handle it.**
 
-RoomTab is an AI-driven fairness engine for splitting shared costs, built for **Commit To Change: An AI Agents Hackathon**. It goes beyond simple math to understand the *nuance* of shared costs-solving the "Silent Tax" of being the roommate who arrives late, doesn't drink, or eats less.
+RoomTab is an AI-driven fairness engine for splitting shared costs, built for **Commit To Change: An AI Agents Hackathon**. It goes beyond simple math to understand the *nuance* of shared costs - solving the "Silent Tax" of being the roommate who arrives late, doesn't drink, or eats less.
 
 [![Built with Opik](https://img.shields.io/badge/Observability-Opik-blue)](https://www.comet.com/opik) [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/) [![Gemini 2.0](https://img.shields.io/badge/AI-Gemini%202.0-8E44AD)](https://deepmind.google/technologies/gemini/)
 
@@ -29,7 +29,7 @@ RoomTab uses **Google Gemini 2.0 Flash** combined with a custom **Item-Iterative
 1.  **AI Judge**: It reads your natural language context ("Jack didn't use gas") to assign specific *Role Tags* to participants (e.g., `exclude:gas`, `partial:rent`).
 2.  **Deterministic Math**: A rigorous algorithm calculates exact splits down to the cent. No AI hallucinations. No "floating math."
 3.  **Traceability**: Every decision is logged to **Opik** for full transparency and **auditability**.
-    *   *RoomTab splits are deterministic — same inputs always produce identical results, independent of model randomness.*
+    *   *RoomTab splits are deterministic - same inputs always produce identical results, independent of model randomness.*
     *   *Impossible Fairness Detection: If modifiers create contradictions (e.g., everyone excluded), the system flags "Needs Human Decision" and logs `scenario:conflict` to Opik.*
 
 ## Hackathon Features
@@ -39,7 +39,7 @@ We didn't just add logging; we built our debugging loop on Opik.
 *   **Live Signals**: The frontend displays the real-time Trace ID and Latency.
 *   **Safety Tags**: We push semantic tags like `scenario:exclusion` and `model:gemini-2.0-flash` to Opik for dataset analysis.
 *   **Fairness Audit**: A dedicated `/audit` page verifies our logic against edge cases like "The Freeloader King" (Pays $0) or "The Strict Vegan" (Item isolation).
-*   **Evaluation Suite**: We also use Opik to log a regression evaluation suite that verifies zero-sum math and expected fairness behavior across canonical scenarios.
+*   **Evaluation Suite**: We also use Opik to log a structured regression evaluation suite that verifies zero-sum math and expected fairness behavior across canonical scenarios.
 
 ### 2. Zero-Friction UX
 *   **Dynamic Templates**: Instant context switching between "Trip", "Rent", and "Dinner".

@@ -36,6 +36,10 @@ We didn't just add logging; we built our debugging loop on Opik.
 *   **Settlement Plans**: Calculates the minimum number of transactions to settle debts ("Alice pays Bob $50").
 *   **Multi-Currency**: Seamlessly handles USD, EUR, INR, and more.
 
+## High-Level Architecture
+
+![System Architecture](public/Architecture.png)
+
 ## Technology Stack
 
 *   **Frontend**: Next.js 15 (App Router), Tailwind CSS
@@ -48,7 +52,7 @@ We didn't just add logging; we built our debugging loop on Opik.
 
 1.  **Clone & Install**
     ```bash
-    git clone https://github.com/StartUp-2/RoomTab.git
+    git clone https://github.com/GokhanCey/RoomTab.git
     cd RoomTab
     npm install
     ```
@@ -77,3 +81,11 @@ We put RoomTab through the "Absurdity Test" to ensure robustness:
 | **The Ghost** | "King says he pays nothing." | **PASS**: King pays $0, others cover the cost (or user rejects plan). |
 | **The Micro-Usage** | "Dave watched 13 mins of the movie." | **PASS**: Dave pays exactly ~11% of the ticket. |
 
+## Links
+
+*   **Live Demo**: [https://room-tab.vercel.app/](https://room-tab.vercel.app/)
+*   **Demo Video**: [https://youtube.com/tbu](https://youtube.com/tbu)
+*   **Source Code**: [https://github.com/GokhanCey/RoomTab](https://github.com/GokhanCey/RoomTab)
+*   **Pitch Deck**: [https://github.com/GokhanCey/RoomTab/blob/main/PD.pdf](https://github.com/GokhanCey/RoomTab/blob/main/PD.pdf)
+
+*Project submitted by Team RoomTab.*

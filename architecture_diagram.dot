@@ -1,0 +1,75 @@
+digraph SystemArchitecture {
+    // Styling
+    rankdir=LR;
+    fontname="Helvetica, Arial, sans-serif";
+    node [fontname="Helvetica, Arial, sans-serif", shape=box, style="filled", fillcolor="white", penwidth=2, color="#333333"];
+    edge [fontname="Helvetica, Arial, sans-serif", color="#666666"];
+
+    // Nodes
+    User [shape=ellipse, fillcolor="#FFD700", label="User (Roommates)"];
+    
+    subgraph cluster_frontend {
+        label="Frontend (Next.js)";
+        style="rounded,filled";
+        fillcolor="#E6F3FF";
+        color="#0066CC";
+        
+        CreateForm [label="Split Creator Form\n(Input Context)"];
+        ResultView [label="Agreement Page\n(View Split)"];
+        OpikDashboard [label="Opik Widget\n(Live Trace ID)"];
+    }
+
+    subgraph cluster_backend {
+        label="Backend API (/api/agent/split)";
+        style="rounded,filled";
+        fillcolor="#FFE6E6"; // Light red tint
+        color="#CC3300";
+        
+        RouteHandler [label="API Route Handler\n(Request Validation)"];
+        
+        subgraph cluster_logic_v4 {
+            label="Logic V4 Engine (Item-Aware)";
+            style="filled";
+            fillcolor="#FFFFFF";
+            color="#000000";
+            penwidth=1;
+            
+            ItemIterator [label="Item Iterator\n(For Each Expense)"];
+            ModifierCalculator [label="Deterministic Math\n(Apply Exclusions/Partials)"];
+            SettlementEngine [label="Settlement Solver\n(Greedy Algorithm)"];
+        }
+    }
+
+    subgraph cluster_external {
+        label="External Services";
+        style="dashed";
+        
+        Gemini [label="Google Gemini 2.0 Flash\n(AI Context Analyzer)", shape=component, fillcolor="#D1C4E9"]; // Purple
+        Opik [label="Opik (Comet ML)\n(Observability & Tracing)", shape=cylinder, fillcolor="#B2DFDB"]; // Teal
+    }
+
+    // Edges (Data Flow)
+    User -> CreateForm [label="Enters Expenses\n& Context"];
+    CreateForm -> RouteHandler [label="POST JSON\n(Expenses + Context)"];
+    
+    // AI Flow
+    RouteHandler -> Gemini [label="1. Analyze Context\n(Assign Modifiers)"];
+    Gemini -> RouteHandler [label="2. JSON Response\n(excludes: Gas, partial: Rent)"];
+    
+    // Logic Flow
+    RouteHandler -> ItemIterator [label="3. Pass Modifiers"];
+    ItemIterator -> ModifierCalculator [label="4. Calculate Share\n(Per Item)"];
+    ModifierCalculator -> SettlementEngine [label="5. Compute Debts"];
+    
+    // Observability Flow
+    RouteHandler -> Opik [label="Log Trace\n(Inputs, Latency, Logic)", style="dotted"];
+    Gemini -> Opik [label="Log Tokens", style="dotted"];
+    
+    // Response Flow
+    SettlementEngine -> ResultView [label="6. Return Split Plan"];
+    ResultView -> User [label="View Fairness Logic"];
+    
+    // Feedback Loop
+    User -> OpikDashboard [label="Vote: Fair/Unfair"];
+    OpikDashboard -> Opik [label="Update Trace Score", style="dotted"];
+}

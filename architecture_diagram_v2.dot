@@ -1,0 +1,91 @@
+digraph SystemArchitecture {
+    // LAYOUT SETTINGS (Optimized for Spacing)
+    rankdir=LR;
+    splines=ortho; // Prevents overlapping curves
+    nodesep=0.8;   // Horizontal space between nodes
+    ranksep=1.2;   // Vertical space between ranks
+    pad=0.5;       // Add padding around the graph
+    compound=true; // Allow edges between clusters
+
+    // STYLING
+    fontname="Helvetica, Arial, sans-serif";
+    node [fontname="Helvetica, Arial, sans-serif", shape=box, style="filled", fillcolor="white", penwidth=2, color="#333333", margin="0.2,0.1"];
+    edge [fontname="Helvetica, Arial, sans-serif", fontsize=10, color="#666666", penwidth=1.5];
+
+    // --- NODES ---
+    
+    User [shape=ellipse, fillcolor="#FFD700", label="User\n(Roommates)", width=1.5];
+
+    subgraph cluster_frontend {
+        label="Frontend (Next.js)";
+        style="rounded,filled";
+        fillcolor="#E6F3FF";
+        color="#0066CC";
+        margin=20;
+
+        CreateForm [label="Split Creator Form\n(Input Context)"];
+        ResultView [label="Agreement Page\n(View Split)"];
+        OpikDashboard [label="Opik Widget\n(Live Trace ID)"];
+    }
+
+    subgraph cluster_backend {
+        label="Backend API (/api/agent/split)";
+        style="rounded,filled";
+        fillcolor="#FFE6E6"; 
+        color="#CC3300";
+        margin=20;
+
+        RouteHandler [label="API Route Handler\n(Request Validation)"];
+
+        subgraph cluster_logic_v4 {
+            label="Logic V4 Engine (Item-Aware)";
+            style="filled";
+            fillcolor="#FFFFFF";
+            color="#000000";
+            penwidth=1;
+            margin=15;
+
+            ItemIterator [label="Item Iterator\n(For Each Expense)"];
+            ModifierCalculator [label="Deterministic Math\n(Apply Exclusions)"];
+            SettlementEngine [label="Settlement Solver\n(Greedy Algo)"];
+        }
+    }
+
+    subgraph cluster_external {
+        label="External Services";
+        style="dashed";
+        margin=15;
+        
+        Gemini [label="Google Gemini 2.0 Flash\n(AI Context Analyzer)", shape=component, fillcolor="#D1C4E9"]; 
+        Opik [label="Opik (Comet ML)\n(Observability)", shape=cylinder, fillcolor="#B2DFDB"]; 
+    }
+
+    // --- EDGES ---
+
+    // User Flow
+    User -> CreateForm [label="1. Input Data", color="#0066CC"];
+    
+    // API Call
+    CreateForm -> RouteHandler [label="2. POST JSON", color="#0066CC"];
+
+    // AI Logic Flow
+    RouteHandler -> Gemini [label="3. Analyze Context", lhead=cluster_external];
+    Gemini -> RouteHandler [label="4. Return Modifiers\n(e.g. exclude:Gas)", ltail=cluster_external];
+
+    // Internal Logic Flow
+    RouteHandler -> ItemIterator [label="5. Pass Modifiers"];
+    ItemIterator -> ModifierCalculator;
+    ModifierCalculator -> SettlementEngine;
+
+    // Observability Flow (Dotted)
+    RouteHandler -> Opik [style="dotted", label="Log Trace\n(Input/Output)"];
+    Gemini -> Opik [style="dotted", label="Log Tokens"];
+    OpikDashboard -> Opik [style="dotted", label="Fetch Trace ID", dir=both];
+
+    // Return Flow
+    SettlementEngine -> ResultView [label="6. Return Plan", color="#0066CC"];
+    ResultView -> User [label="7. View Split", color="#0066CC"];
+    
+    // Feedback Loop
+    User -> OpikDashboard [label="Vote: Fair/Unfair", style="dashed"];
+}

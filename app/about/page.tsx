@@ -125,7 +125,26 @@ export default function AboutPage() {
                 </div>
             </div>
 
-            {/* 4. Hackathon Details */}
+            {/* 4. System Architecture */}
+            <div className="space-y-6 text-center">
+                <h2 className="text-3xl font-bold flex items-center justify-center gap-2">
+                    <Split className="text-primary w-8 h-8" /> System Architecture
+                </h2>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
+                    Built with Next.js 15, Gemini 2.0 Flash, and Opik Observability.
+                    Logic V4 ensures zero-sum fairness through item-iterative exclusions.
+                </p>
+                <div className="border rounded-xl overflow-hidden shadow-lg bg-white dark:bg-zinc-900">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src="/Architecture.png"
+                        alt="RoomTab Architecture Diagram"
+                        className="w-full h-auto"
+                    />
+                </div>
+            </div>
+
+            {/* 5. Hackathon Details */}
             <div className="p-8 bg-blue-50 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-blue-900">
                 <h3 className="text-xl font-bold mb-4 text-blue-900 dark:text-blue-100">Built for the Hackathon</h3>
                 <div className="grid sm:grid-cols-2 gap-8 text-sm">

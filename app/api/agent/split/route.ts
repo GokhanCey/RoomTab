@@ -128,48 +128,44 @@ export async function POST(req: Request) {
             // Validated Model from debug_list: gemini-2.0-flash
             modelUsed = "gemini-2.0-flash";
 
-            // 2. Generate Prompt for Explanation - HARDENED V7
+            // 2. Generate Prompt for Explanation - LOGIC V4 (Item-Aware)
             const prompt = `
-            You are a Logic Engine splitting a bill of ${currency} ${totalAmount.toFixed(2)} for "${title}" (${category}).
-            
-            Participants & Base Weights:
-            ${JSON.stringify(weightedParticipants, null, 2)}
+            You are a Fair Split Judge. Analyze the context and assign modifiers to participants.
+            You must decide if a modifier is GLOBAL (applies to total) or TARGETED (applies to specific items).
 
-            Context provided by user: "${description}"
+            Case: "${title}" (${category})
+            Context: "${description}"
 
-            CRITICAL INSTRUCTION - "Deep Logic V7 (Compounding Signals)":
-            
-            1. **ZERO-EQUALITY DIRECTIVE**: 
-               - If the context mentions ANY difference between people (e.g. "vegan", "late", "small room", "unemployed"), an equal split is FORBIDDEN.
-               - You must apply a discount or premium based on the signal.
-            
-            2. **ITEMIZATION & EXCLUSIONS**: 
-               - If someone "didn't use" X (e.g. "Jessy didn't use electricity"), you must isolate that cost.
-               - Jessy's share for that item MUST be 0. Others pay it.
-               - Do NOT smooth this over. Show the math: "Electricity: $100. Jessy $0, Others $33".
+            Participants:
+            ${JSON.stringify(participants.map((p: any) => ({ id: p.id, name: p.name, tags: p.tags })), null, 2)}
 
-            3. **COMPOUNDING SIGNALS**:
-               - If someone has multiple factors (e.g. "Unemployed" AND "Late arrival"), BOTH discounts apply.
-               - Do not let them cancel out unless they are opposites.
+            Expenses:
+            ${JSON.stringify(expenses.map((e: any) => ({ desc: e.description, amt: e.amount })), null, 2)}
 
-            4. **FINAL STEP**:
-               - Sum up cost-per-person.
-               - Output explicit "weights_used" (e.g. 1.0, 0.5) and "context_signals" used for debugging.
+            RULES:
+            1. **Exclusions**: If context says "Jack didn't use Gas", output a modifier with type "exclude" and targets ["gas"].
+            2. **Partial Usage**: If "Alice arrived late", she might have partial weight on "Hotel" but full weight on "Dinner". Use targets!
+            3. **Global Modifiers**: If omitting targets, the modifier applies to EVERYTHING (e.g. "Unemployed" discount).
+            4. **Ambiguity**: Default to standard.
 
-            Output JSON strictly:
+            OUTPUT JSON:
             {
-                "detected_items": [{"name": string, "cost": number}],
-                "context_signals": { [personName: string]: string[] },
-                "weights_used": { [personName: string]: number },
-                "step_by_step_reasoning": string[], 
-                "split": [{ "name": string, "recommendedShare": number, "sharePercentage": number, "reasoning": string }],
-                "agentSummary": string 
+                "modifiers": [
+                    { 
+                      "participantId": "string", 
+                      "type": "exclude" | "partial" | "premium" | "standard", 
+                      "value"?: number, 
+                      "targets"?: string[], // E.g. ["gas", "fuel"] or ["rent"]
+                      "reason": "string" 
+                    }
+                ],
+                "agentSummary": "Concise summary."
             }
             `
 
             // Span for LLM
             const llmSpan = trace.span({
-                name: "gemini_inference_v7",
+                name: "gemini_inference_v4_item_aware",
                 type: "llm"
             })
 
@@ -179,10 +175,9 @@ export async function POST(req: Request) {
                 generationConfig: { responseMimeType: "application/json" }
             });
 
-            // Count tokens (heuristic)
             const inputTokenCount = Math.ceil(prompt.length / 4);
 
-            const generateWithRetry = async (text: string, retries = 3, delay = 10000): Promise<string> => {
+            const generateWithRetry = async (text: string, retries = 3, delay = 2000): Promise<string> => {
                 try {
                     const result = await model.generateContent(text);
                     const response = await result.response;
@@ -197,20 +192,31 @@ export async function POST(req: Request) {
                 }
             };
 
-            const text = await generateWithRetry(prompt, 3, 10000);
+            const text = await generateWithRetry(prompt, 3, 2000);
             const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
             data = JSON.parse(cleanedText)
-            agentRecommendedSplit = data.split
+
+            // --- DETERMINISTIC CALCULATION ENGINE V4 ---
+            const { calculateItemizedSplit } = await import('@/lib/logic_v4')
+
+            // Calculate Modifiers + Fallback to Standard
+            const appliedModifiers = data.modifiers || [];
+
+            // Run Math
+            agentRecommendedSplit = calculateItemizedSplit(expenses, participants, appliedModifiers);
+
+            // Log output Token Count
+            const outputTokenCount = Math.ceil(text.length / 4);
 
             // End LLM Span with Metadata
             llmSpan.end({
                 output: {
-                    responseSize: text.length,
                     model: "gemini-2.0-flash",
-                    weights: data.weights_used, // Log weights to Opik
-                    signals: data.context_signals
+                    input_tokens: inputTokenCount,
+                    output_tokens: outputTokenCount,
+                    modifiers: appliedModifiers
                 },
-                tags: ["production_v2", "hardened_logic"]
+                tags: ["logic_v4", "item_aware"]
             })
         }
 

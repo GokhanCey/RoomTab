@@ -1,95 +1,84 @@
-# RoomTab 🧾✨
-**The AI-Powered Fairness Engine for Shared Expenses**
 
-[![Built with Opik](https://img.shields.io/badge/Built%20with-Opik-blue)](https://www.comet.com/opik) [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/) [![Gemini 2.0](https://img.shields.io/badge/AI-Gemini%202.0-8E44AD)](https://deepmind.google/technologies/gemini/)
+# RoomTab: The Fairness Engine 🧾✨
 
-> *"Equal splits aren't always fair."*
+> **Stop arguing about the bill. Let Logic handle it.**
 
-RoomTab is an intelligent expense splitting agent that understands **context**. Instead of mindlessly dividing bills by $N$, it reads the situation ("Alice is vegan", "Bob arrived 2 weeks late") and calculates a mathematically fair split using **Generative AI** and **Weighted Logic**, verified by **Opik**.
+RoomTab is an AI-powered expense splitting agent built for the **Amadeus Genesis Hackathon**. It goes beyond simple math to understand the *nuance* of shared costs—solving the "Silent Tax" of being the roommate who arrives late, doesn't drink, or eats less.
 
----
-
-## 🏆 Hackathon Tracks
-
-### 1. Best Use of Opik (Observability) 🕵️‍♂️
-We didn't just add logging; we built our entire **Fairness Engine** on top of Opik.
-*   **End-to-End Tracing:** Every split request is a trace, tagged with scenarios (e.g., `scenario:vegan`, `scenario:exclusion`).
-*   **Live Dashboard:** The frontend displays real-time `game_id` (trace ID), `latency`, and `token_count` directly from the AI response.
-*   **User Feedback Loop:** Users can vote "Fair" or "Unfair" on results, which feeds directly back into Opik for dataset evaluation.
-
-### 2. Financial Health (FinTech) 💸
-RoomTab prevents the "silent tax" of equal splitting. By accounting for income disparity ("Student discount"), usage ("Didn't eat the steak"), and duration ("Moved in late"), we reduce financial stress among roommates and friends.
+[![Built with Opik](https://img.shields.io/badge/Observability-Opik-blue)](https://www.comet.com/opik) [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/) [![Gemini 2.0](https://img.shields.io/badge/AI-Gemini%202.0-8E44AD)](https://deepmind.google/technologies/gemini/)
 
 ---
 
-## 🚀 Key Features
+## 💡 The Problem
+Existing split apps are calculators, not arbiters. They force you to manually input who owes what, leading to social friction.
+*   "Does Alice pay for the Uber if she fell asleep in the back?"
+*   "Bob is vegan, so he shouldn't pay for the steak."
+*   "Charlie arrived 2 days late to the Airbnb."
 
-### 🧠 The Logic Engine (Gemini 2.0 Flash)
-Our custom prompt pipeline doesn't just guess; it follows strict **Fairness Principles**:
-*   **Exclusion**: If you didn't consume it, you pay $0.
-*   **Pro-Rating**: Rent is calculated by days stayed.
-*   **Capacity**: Can apply subsidies for students or lower-income members if context suggests.
+Manually adjusting these spreadsheets is a nightmare.
 
-### ⚖️ Settlement Plans
-RoomTab calculates not just *what* everyone owes, but *who pays whom* to settle debts efficiently. 
-*   **Algorithm**: Greedy minimization of transactions.
-*   **Output**: Clear instructions (e.g., *"Bob pays Alice $30.00"*).
+## 🧠 The Solution: Item-Aware Logic (V4)
+RoomTab uses **Google Gemini 2.0 Flash** combined with a custom **Item-Iterative Deterministic Engine**.
+1.  **AI Judge**: It reads your natural language context ("Jack didn't use gas") to assign specific *Role Tags* to participants (e.g., `exclude:gas`, `partial:rent`).
+2.  **Deterministic Math**: A rigorous algorithm calculates exact splits down to the cent. No AI hallucinations. No "floating math."
+3.  **Traceability**: Every decision is logged to **Opik** for full transparency.
 
-### 🔍 Transparency & Audit
-Trust is key. We provide:
-*   **Currency Support**: Multi-currency handling (USD, EUR, TRY, INR).
-*   **Fairness Audit**: A public `/audit` page showing verified test cases.
-*   **Debug Mode**: View the raw JSON reasoning behind every decision.
+## 🏆 Hackathon Features
 
----
+### 1. Deep Observability (Opik Integration)
+We didn't just add logging; we built our debugging loop on Opik.
+*   **Live Signals**: The frontend displays the real-time Trace ID and Latency.
+*   **Safety Tags**: We push semantic tags like `scenario:exclusion` and `model:gemini-2.0-flash` to Opik for dataset analysis.
+*   **Fairness Audit**: A dedicated `/audit` page verifies our logic against edge cases like "The Freeloader King" (Pays $0) or "The Strict Vegan" (Item isolation).
+
+### 2. Zero-Friction UX
+*   **Dynamic Templates**: Instant context switching between "Trip", "Rent", and "Dinner".
+*   **Settlement Plans**: Calculates the minimum number of transactions to settle debts ("Alice pays Bob $50").
+*   **Multi-Currency**: Seamlessly handles USD, EUR, INR, and more.
 
 ## 🛠️ Technology Stack
-
-*   **Frontend**: Next.js 15 (App Router), Tailwind CSS, Shadcn/UI
-*   **AI Model**: Google Gemini 2.0 Flash (via Vercel AI SDK)
-*   **Observability**: Opik (Comet ML) for Tracing & Evaluation
-*   **State Management**: React Hooks + LocalStorage (Persisted History)
+*   **Frontend**: Next.js 15 (App Router), Tailwind CSS
+*   **Backend**: Next.js API Routes (Edge-ready)
+*   **AI**: Gemini 2.0 Flash (via Vercel AI SDK)
+*   **Observability**: Opik SDK (Comet ML)
+*   **Database**: LocalStorage (Privacy-first)
 
 ---
 
-## 📦 Getting Started
+## ⚡ Getting Started within 2 Minutes
 
-1.  **Clone the Repo**
+1.  **Clone & Install**
     ```bash
-    git clone https://github.com/yourusername/roomtab.git
-    cd roomtab
-    ```
-
-2.  **Install Dependencies**
-    ```bash
+    git clone https://github.com/StartUp-2/RoomTab.git
+    cd RoomTab
     npm install
     ```
 
-3.  **Set Environment Variables**
-    Create a `.env.local` file:
+2.  **Environment Setup**
+    Create `.env.local`:
     ```env
-    GEMINI_API_KEY=your_gemini_key
-    OPIK_API_KEY=your_opik_key
+    GEMINI_API_KEY=your_key_here
+    OPIK_API_KEY=your_key_here
     ```
 
-4.  **Run Development Server**
+3.  **Run**
     ```bash
     npm run dev
     ```
-    Open [http://localhost:3000](http://localhost:3000) to start splitting!
+    Visit `http://localhost:3000`.
 
 ---
 
-## 🧪 Fairness Challenge (Verified)
+## 🧪 Verified Scenarios
+We put RoomTab through the "Absurdity Test" to ensure robustness:
 
-We put RoomTab to the test against complex social scenarios:
-
-| Scenario | Context | Verdict |
+| Scenario | Input Context | Result |
 | :--- | :--- | :--- |
-| **The Vegan** | "Bob said he's vegan but ate the seafood platter." | **PASS**: Bob pays extra penalty. |
-| **Late Arrival** | "Charlie missed the free intro week." | **PASS**: Charlie pays pro-rated amount. |
-| **Equal Split** | (No Context) | **PASS**: Instant mathematical division. |
+| **The Vegan** | "Bob is vegan and didn't eat steak." | **PASS**: Bob pays $0 for steak, fair share of salad. |
+| **The Late Arrival** | "Alice arrived 2 days late." | **PASS**: Alice pays pro-rated rent. |
+| **The Ghost** | "King says he pays nothing." | **PASS**: King pays $0, others cover the cost (or user rejects plan). |
+| **The Micro-Usage** | "Dave watched 13 mins of the movie." | **PASS**: Dave pays exactly ~11% of the ticket. |
 
 ---
 
-*Built with ❤️ for the Hackathon.*
+*Project submitted by Team RoomTab.*

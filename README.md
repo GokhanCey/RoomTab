@@ -2,7 +2,7 @@
 
 > **Stop arguing about the bill. Let Logic handle it.**
 
-RoomTab is an AI-driven fairness engine for splitting shared costs, built for **Commit To Change: An AI Agents Hackathon**. Existing split apps are lazy calculators—they force you to manually input who owes what. RoomTab acts as the **arbiter**, handling the messy, real-life parts of shared costs: the roommate who arrives late, the vegan who skips the steak, or the ghost who "pays nothing."
+RoomTab is an AI-driven fairness engine for splitting shared costs, built for **Commit To Change: An AI Agents Hackathon**. Existing split apps are lazy calculators - they force you to manually input who owes what. RoomTab acts as the **arbiter**, handling the messy, real-life parts of shared costs: the roommate who arrives late, the vegan who skips the steak, or the ghost who "pays nothing."
 
 ## Links
 
@@ -11,12 +11,17 @@ RoomTab is an AI-driven fairness engine for splitting shared costs, built for **
 *   **Source Code**: [https://github.com/GokhanCey/RoomTab](https://github.com/GokhanCey/RoomTab)
 *   **Pitch Deck**: [https://github.com/GokhanCey/RoomTab/blob/main/PD.pdf](https://github.com/GokhanCey/RoomTab/blob/main/PD.pdf)
 
-## How it Works
+## Core Architecture
 
 RoomTab decouples **reasoning** from **calculation** to ensure fairness without hallucination.
 
-1.  **AI Judge (Gemini 2.0 Flash)**: Analyzing natural language context ("Jack didn't use gas") to assign specific *Role Tags* (e.g., `exclude:gas`, `partial:rent`). It does **not** do math.
-2.  **Deterministic Engine**: A custom algorithm applies these tags to calculate exact splits down to the cent. Same inputs always produce identical results.
+![System Architecture](public/Architecture.png)
+
+### Technical Deep Dive
+
+1.  **Hybrid Engine**: We strictly separate concerns. **Gemini 2.0 Flash** acts purely as a semantic analyzer (extracting context tags), while our **Logic V4 Engine** handles the math deterministically. This prevents "math hallucinations."
+2.  **Settlement Solver**: Implements a greedy algorithm to resolve debts in $O(N \log N)$ time, ensuring the minimum number of transactions.
+3.  **The Observability Loop**: User feedback ("Was this fair?") is fed directly back into **Opik**, linking qualitative human sentiment to technical execution traces for continuous tuning.
 
 ## Observability (Opik)
 
@@ -42,10 +47,9 @@ We verified the engine against common "absurd" edge cases:
 | :--- | :--- | :--- |
 | **The Vegan** | "Bob is vegan, no steak." | Bob pays $0 for steak. |
 | **The Late Arrival** | "Alice arrived 2 days late." | Alice pays pro-rated rent. |
-| **The Ghost** | "King pays nothing." | King pays $0 (or plan rejected). |
-| **Micro-Usage** | "Dave watched 13 mins." | Dave pays exactly ~11%. |
+| **The Ghost** | "King pays nothing." | **PASS**: Logic isolates King from all cost pools; system flags for manual confirmation. |
 
 *All scenarios are logged as evaluation cases in Opik.*
 
 ---
-*Project submitted by Team RoomTab.*
+*Project submitted by Gokhan Ceylan*

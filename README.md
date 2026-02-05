@@ -1,97 +1,8 @@
-
 # RoomTab: The Fairness Engine 🧾
 
 > **Stop arguing about the bill. Let Logic handle it.**
 
-RoomTab is an AI-driven fairness engine for splitting shared costs, built for **Commit To Change: An AI Agents Hackathon**. It goes beyond simple math to understand the *nuance* of shared costs - solving the "Silent Tax" of being the roommate who arrives late, doesn't drink, or eats less.
-
-[![Built with Opik](https://img.shields.io/badge/Observability-Opik-blue)](https://www.comet.com/opik) [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/) [![Gemini 2.0](https://img.shields.io/badge/AI-Gemini%202.0-8E44AD)](https://deepmind.google/technologies/gemini/)
-
-## Why This Is Financial Health
-*   **Prevents hidden overspending** caused by unfair group splits.
-*   **Creates accountability records** of who subsidizes whom over time.
-*   **Reduces social disputes** that lead to financial friction.
-*   **Makes shared spending measurable**, turning emotional disputes into auditable financial records.
-*   **Encourages transparent, responsible shared spending.**
-
-## Why Simple Splits Fail
-
-Existing split apps are calculators, not arbiters. They force you to manually input who owes what, leading to social friction.
-*   "Does Alice pay for the Uber if she fell asleep in the back?"
-*   "Bob is vegan, so he shouldn't pay for the steak."
-*   "Charlie arrived 2 days late to the Airbnb."
-
-Manually adjusting these spreadsheets is a nightmare.
-
-## The Solution: Item-Aware Logic (V4)
-
-RoomTab uses **Google Gemini 2.0 Flash** combined with a custom **Item-Iterative Deterministic Engine**.
-1.  **AI Judge**: It reads your natural language context ("Jack didn't use gas") to assign specific *Role Tags* to participants (e.g., `exclude:gas`, `partial:rent`).
-2.  **Deterministic Math**: A rigorous algorithm calculates exact splits down to the cent. No AI hallucinations. No "floating math."
-3.  **Traceability**: Every decision is logged to **Opik** for full transparency and **auditability**.
-    *   *RoomTab splits are deterministic - same inputs always produce identical results, independent of model randomness.*
-    *   *Impossible Fairness Detection: If modifiers create contradictions (e.g., everyone excluded), the system flags "Needs Human Decision" and logs `scenario:conflict` to Opik.*
-
-## Hackathon Features
-
-### 1. Deep Observability (Opik Integration)
-We didn't just add logging; we built our debugging loop on Opik.
-*   **Live Signals**: The frontend displays the real-time Trace ID and Latency.
-*   **Safety Tags**: We push semantic tags like `scenario:exclusion` and `model:gemini-2.0-flash` to Opik for dataset analysis.
-*   **Fairness Audit**: A dedicated `/audit` page verifies our logic against edge cases like "The Freeloader King" (Pays $0) or "The Strict Vegan" (Item isolation).
-*   **Evaluation Suite**: We also use Opik to log a structured regression evaluation suite that verifies zero-sum math and expected fairness behavior across canonical scenarios.
-
-### 2. Zero-Friction UX
-*   **Dynamic Templates**: Instant context switching between "Trip", "Rent", and "Dinner".
-*   **Settlement Plans**: Calculates the minimum number of transactions to settle debts ("Alice pays Bob $50").
-*   **Multi-Currency**: Seamlessly handles USD, EUR, INR, and more.
-
-## High-Level Architecture
-
-![System Architecture](public/Architecture.png)
-
-## Technology Stack
-
-*   **Frontend**: Next.js 15 (App Router), Tailwind CSS
-*   **Backend**: Next.js API Routes (Edge-ready)
-*   **AI**: Gemini 2.0 Flash (via Vercel AI SDK)
-*   **Observability**: Opik SDK (Comet ML)
-*   **Storage**: Ephemeral / Privacy-First (LocalStorage)
-
-## Getting Started within 2 Minutes
-
-**Don't have API keys?** Try the [Live Demo](https://room-tab.vercel.app/) instead.
-
-1.  **Clone & Install**
-    ```bash
-    git clone https://github.com/GokhanCey/RoomTab.git
-    cd RoomTab
-    npm install
-    ```
-
-2.  **Environment Setup**
-    Create `.env.local`:
-    ```env
-    GEMINI_API_KEY=your_key_here
-    OPIK_API_KEY=your_key_here
-    ```
-
-3.  **Run**
-    ```bash
-    npm run dev
-    ```
-    Visit `http://localhost:3000`.
-
-## Verified Scenarios
-
-We put RoomTab through the "Absurdity Test" to ensure robustness:
-
-| Scenario | Input Context | Result |
-| :--- | :--- | :--- |
-| **The Vegan** | "Bob is vegan and didn't eat steak." | **PASS**: Bob pays $0 for steak, fair share of salad. |
-| **The Late Arrival** | "Alice arrived 2 days late." | **PASS**: Alice pays pro-rated rent. |
-| **The Ghost** | "King says he pays nothing." | **PASS**: King pays $0, others cover the cost (or user rejects plan). |
-| **The Micro-Usage** | "Dave watched 13 mins of the movie." | **PASS**: Dave pays exactly ~11% of the ticket. |
+RoomTab is an AI-driven fairness engine for splitting shared costs, built for **Commit To Change: An AI Agents Hackathon**. Existing split apps are lazy calculators—they force you to manually input who owes what. RoomTab acts as the **arbiter**, handling the messy, real-life parts of shared costs: the roommate who arrives late, the vegan who skips the steak, or the ghost who "pays nothing."
 
 ## Links
 
@@ -100,4 +11,41 @@ We put RoomTab through the "Absurdity Test" to ensure robustness:
 *   **Source Code**: [https://github.com/GokhanCey/RoomTab](https://github.com/GokhanCey/RoomTab)
 *   **Pitch Deck**: [https://github.com/GokhanCey/RoomTab/blob/main/PD.pdf](https://github.com/GokhanCey/RoomTab/blob/main/PD.pdf)
 
+## How it Works
+
+RoomTab decouples **reasoning** from **calculation** to ensure fairness without hallucination.
+
+1.  **AI Judge (Gemini 2.0 Flash)**: Analyzing natural language context ("Jack didn't use gas") to assign specific *Role Tags* (e.g., `exclude:gas`, `partial:rent`). It does **not** do math.
+2.  **Deterministic Engine**: A custom algorithm applies these tags to calculate exact splits down to the cent. Same inputs always produce identical results.
+
+## Observability (Opik)
+
+We adhere to "Log Everything" to enable debugging and audit trails.
+
+*   **Live Traces**: Every decision generates a Trace ID, logged to Opik with latency and token usage.
+*   **Conflict Detection**: If modifiers create impossible math (e.g., everyone excluded), we flag `scenario:conflict` for human review.
+*   **Evaluation Suite**: We run a structured regression suite against canonical scenarios to verify zero-sum integrity.
+
+## Technology Stack
+
+*   **Frontend**: Next.js 15
+*   **AI**: Gemini 2.0 Flash (Vercel AI SDK)
+*   **Observability**: Opik SDK
+*   **Styling**: Tailwind CSS
+*   **Storage**: LocalStorage (Privacy-first)
+
+## Verified Scenarios
+
+We verified the engine against common "absurd" edge cases:
+
+| Scenario | Input | Result |
+| :--- | :--- | :--- |
+| **The Vegan** | "Bob is vegan, no steak." | Bob pays $0 for steak. |
+| **The Late Arrival** | "Alice arrived 2 days late." | Alice pays pro-rated rent. |
+| **The Ghost** | "King pays nothing." | King pays $0 (or plan rejected). |
+| **Micro-Usage** | "Dave watched 13 mins." | Dave pays exactly ~11%. |
+
+*All scenarios are logged as evaluation cases in Opik.*
+
+---
 *Project submitted by Team RoomTab.*

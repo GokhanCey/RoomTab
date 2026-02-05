@@ -96,7 +96,7 @@ We put RoomTab through the "Absurdity Test" to ensure robustness:
 ## Links
 
 *   **Live Demo**: [https://room-tab.vercel.app/](https://room-tab.vercel.app/)
-*   **Video Walkthrough**: [https://youtube.com/tbu](https://youtube.com/tbu)
+*   **Video Walkthrough**: [https://youtu.be/DkIFt4YB28s](https://youtu.be/DkIFt4YB28s)
 *   **Source Code**: [https://github.com/GokhanCey/RoomTab](https://github.com/GokhanCey/RoomTab)
 *   **Pitch Deck**: [https://github.com/GokhanCey/RoomTab/blob/main/PD.pdf](https://github.com/GokhanCey/RoomTab/blob/main/PD.pdf)
 
